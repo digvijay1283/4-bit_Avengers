@@ -21,6 +21,7 @@ export interface IUser extends Document {
   specialization?: string;
   licenseNumber?: string;
   role: "user" | "doctor" | "admin";
+  mentalHealthQuestionnaireCompleted?: boolean;
   status: "active" | "inactive";
   lastLoginAt?: Date;
   createdAt: Date;
@@ -57,6 +58,7 @@ const userSchema = new Schema<IUser>(
     specialization: { type: String, trim: true },
     licenseNumber: { type: String, trim: true },
     role: { type: String, enum: ["user", "doctor", "admin"], default: "user" },
+    mentalHealthQuestionnaireCompleted: { type: Boolean, default: false },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     lastLoginAt: { type: Date },
   },

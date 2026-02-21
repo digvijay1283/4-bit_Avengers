@@ -34,6 +34,19 @@ type ExtractedMedicalInfo = {
   };
   sections: { assessment?: string; diagnosis?: string; prescription?: string };
   keyInsights: string[];
+  nlp?: {
+    summary: string;
+    medications: {
+      name: string;
+      dosage?: string;
+      frequency?: string;
+      instruction?: string;
+    }[];
+    abnormalFindings: string[];
+    followUpActions: string[];
+    severity: "low" | "medium" | "high";
+    confidence: number;
+  };
 };
 
 type Report = {
@@ -214,6 +227,14 @@ export default function ReportsPage() {
     const patient = ext?.patient ?? {};
     const sections = ext?.sections ?? {};
     const keyInsights = ext?.keyInsights ?? [];
+    const nlp = ext?.nlp;
+    const severityBadge =
+      nlp?.severity === "high"
+        ? "bg-red-100 text-red-700"
+        : nlp?.severity === "medium"
+          ? "bg-amber-100 text-amber-700"
+          : "bg-emerald-100 text-emerald-700";
+
     return (
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
@@ -363,6 +384,72 @@ export default function ReportsPage() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* NLP Summary */}
+                {nlp && (
+                  <div className="bg-blue-50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="font-medium text-sm text-blue-800">NLP Analysis</h4>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${severityBadge}`}>
+                          {nlp.severity.toUpperCase()} Priority
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          {(nlp.confidence * 100).toFixed(0)}% confidence
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-slate-700">{nlp.summary}</p>
+
+                    {nlp.abnormalFindings.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-red-700 mb-1">
+                          Abnormal Findings
+                        </p>
+                        <ul className="space-y-1">
+                          {nlp.abnormalFindings.map((finding, idx) => (
+                            <li key={idx} className="text-xs text-slate-700 flex items-start gap-2">
+                              <AlertCircle size={12} className="text-red-500 mt-0.5 shrink-0" />
+                              {finding}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {nlp.medications.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800 mb-1">
+                          Medicines Detected
+                        </p>
+                        <ul className="space-y-1">
+                          {nlp.medications.map((med, idx) => (
+                            <li key={`${med.name}-${idx}`} className="text-xs text-slate-700">
+                              <span className="font-medium">{med.name}</span>
+                              {med.dosage ? ` • ${med.dosage}` : ""}
+                              {med.frequency ? ` • ${med.frequency}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {nlp.followUpActions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-700 mb-1">Recommended Follow-Up</p>
+                        <ul className="space-y-1">
+                          {nlp.followUpActions.map((action, idx) => (
+                            <li key={idx} className="text-xs text-slate-700 flex items-start gap-2">
+                              <CheckCircle2 size={12} className="text-blue-600 mt-0.5 shrink-0" />
+                              {action}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -579,6 +666,28 @@ export default function ReportsPage() {
                               {insight}
                             </p>
                           ))}
+                        </div>
+                      )}
+
+                      {report.extractedData?.nlp && (
+                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                          <p className="text-xs font-semibold text-blue-800">
+                            NLP Summary
+                          </p>
+                          <p className="text-xs text-slate-700 mt-1">
+                            {report.extractedData.nlp.summary}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                              {report.extractedData.nlp.medications.length} medicine(s)
+                            </span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                              {report.extractedData.nlp.abnormalFindings.length} finding(s)
+                            </span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                              {(report.extractedData.nlp.confidence * 100).toFixed(0)}% confidence
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -15,11 +15,106 @@ import {
   MessageCircle,
   Sparkles,
   Loader2,
+  ClipboardList,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import MentalHealthQuestionnaire from "./MentalHealthQuestionnaire";
+import { useSession } from "@/hooks/useSession";
 
 type Mood = "great" | "good" | "okay" | "low" | "bad";
+
+const RECOMMENDATION_KEYS = [
+  "recommendations",
+  "items",
+  "data",
+  "output",
+  "result",
+  "routineRecommendations",
+  "routine_recommendations",
+] as const;
+
+function splitRecommendationText(value: string): string[] {
+  const normalized = value.replace(/\r/g, "").trim();
+  if (!normalized) return [];
+
+  const lines = normalized
+    .split("\n")
+    .map((line) => line.replace(/^[-*\d.)\s]+/, "").trim())
+    .filter(Boolean);
+
+  if (lines.length > 1) return lines;
+
+  const numbered = normalized
+    .split(/(?:^|\s)(?=\d+\.\s+)/)
+    .map((line) => line.replace(/^\d+\.\s*/, "").trim())
+    .filter(Boolean);
+
+  if (numbered.length > 1) return numbered;
+
+  return [normalized];
+}
+
+function toRecommendationList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item.trim();
+        if (typeof item === "number" || typeof item === "boolean") return String(item);
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          const text = obj.text ?? obj.title ?? obj.recommendation ?? obj.item;
+          if (typeof text === "string") return text.trim();
+        }
+        return "";
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return splitRecommendationText(value);
+  }
+
+  return [];
+}
+
+function parseRecommendations(payload: unknown): {
+  recommendations: string[];
+  raw: Record<string, unknown> | null;
+} {
+  const direct = toRecommendationList(payload);
+  if (direct.length > 0) {
+    return { recommendations: direct, raw: null };
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { recommendations: [], raw: null };
+  }
+
+  const obj = payload as Record<string, unknown>;
+
+  for (const key of RECOMMENDATION_KEYS) {
+    const list = toRecommendationList(obj[key]);
+    if (list.length > 0) {
+      return { recommendations: list, raw: null };
+    }
+  }
+
+  for (const key of RECOMMENDATION_KEYS) {
+    const nested = obj[key];
+    if (!nested || typeof nested !== "object" || Array.isArray(nested)) continue;
+
+    const nestedObj = nested as Record<string, unknown>;
+    for (const nestedKey of RECOMMENDATION_KEYS) {
+      const list = toRecommendationList(nestedObj[nestedKey]);
+      if (list.length > 0) {
+        return { recommendations: list, raw: null };
+      }
+    }
+  }
+
+  return { recommendations: [], raw: obj };
+}
 
 const moodOptions: { mood: Mood; icon: typeof Smile; label: string; color: string }[] = [
   { mood: "great", icon: Smile, label: "Great", color: "bg-green-50 text-green-600 border-green-200" },
@@ -66,10 +161,18 @@ export default function MentalHealthContent() {
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
   const [checkingQuestionnaire, setCheckingQuestionnaire] = useState(true);
   const [questionnaireCompleted, setQuestionnaireCompleted] = useState(false);
+  const [recommendations, setRecommendations] = useState<string[] | null>(null);
+  const [recomRaw, setRecomRaw] = useState<Record<string, unknown> | null>(null);
+  const [recomError, setRecomError] = useState<string | null>(null);
+  const [loadingRecom, setLoadingRecom] = useState(false);
+  const { user } = useSession();
 
   const checkQuestionnaire = useCallback(async () => {
     try {
-      const res = await fetch("/api/mental-health/questionnaire");
+      const res = await fetch("/api/mental-health/questionnaire", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
       setQuestionnaireCompleted(!!data.completed);
     } catch {
@@ -83,6 +186,58 @@ export default function MentalHealthContent() {
   useEffect(() => {
     checkQuestionnaire();
   }, [checkQuestionnaire]);
+
+  const fetchRecommendations = useCallback(async () => {
+    if (!user?.userId) return;
+    setLoadingRecom(true);
+    setRecomError(null);
+    try {
+      const res = await fetch("/api/mental-health/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userid: user.userId, userId: user.userId }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        message?: unknown;
+        recommendations?: unknown;
+        raw?: unknown;
+      };
+
+      if (!res.ok || !data.ok) {
+        const message =
+          typeof data.message === "string"
+            ? data.message
+            : "Failed to fetch recommendations.";
+        setRecommendations(null);
+        setRecomRaw(null);
+        setRecomError(message);
+        return;
+      }
+
+      const parsed = parseRecommendations(data.recommendations ?? data.raw ?? null);
+      if (parsed.recommendations.length > 0) {
+        setRecommendations(parsed.recommendations);
+        setRecomRaw(null);
+        return;
+      }
+
+      setRecommendations(null);
+      setRecomRaw(parsed.raw);
+    } catch {
+      setRecommendations(null);
+      setRecomRaw(null);
+      setRecomError("Failed to fetch recommendations.");
+    } finally {
+      setLoadingRecom(false);
+    }
+  }, [user?.userId]);
+
+  useEffect(() => {
+    if (questionnaireCompleted) {
+      fetchRecommendations();
+    }
+  }, [questionnaireCompleted, fetchRecommendations]);
 
   // Loading state while checking
   if (checkingQuestionnaire) {
@@ -255,6 +410,54 @@ export default function MentalHealthContent() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Routine Recommendations */}
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-blue-50/40 to-white shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-[#0F172A]">Your Routine Recommendations</h3>
+              </div>
+              <button
+                onClick={fetchRecommendations}
+                disabled={loadingRecom}
+                className="text-[#94A3B8] hover:text-primary transition"
+                title="Refresh"
+              >
+                <RefreshCw className={`h-4 w-4 ${loadingRecom ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+            {loadingRecom ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-[#64748B]">Fetching recommendations…</span>
+              </div>
+            ) : recomError ? (
+              <p className="text-sm text-red-600 py-4 text-center">{recomError}</p>
+            ) : recommendations && recommendations.length > 0 ? (
+              <ul className="space-y-2">
+                {recommendations.map((item, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2 rounded-xl border border-[#F1F5F9] bg-[#FAFBFC] px-4 py-3 text-sm text-[#475569]"
+                  >
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                      {idx + 1}
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : recomRaw ? (
+              <pre className="rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] p-3 text-xs text-[#475569] overflow-x-auto whitespace-pre-wrap">
+                {JSON.stringify(recomRaw, null, 2)}
+              </pre>
+            ) : (
+              <p className="text-sm text-[#94A3B8] py-4 text-center">
+                No recommendations yet. Click refresh to check.
+              </p>
+            )}
           </div>
 
           {/* Quick Resources */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Brain,
   ChevronRight,
@@ -12,12 +12,16 @@ import {
   Loader2,
 } from "lucide-react";
 
-/* ─── Question data ─────────────────────────────────────────────────── */
 type Question = {
   id: string;
   group: string;
   groupColor: string;
   text: string;
+};
+
+type SavedAnswer = {
+  questionId: string;
+  value: number;
 };
 
 const ANSWER_OPTIONS = [
@@ -29,27 +33,24 @@ const ANSWER_OPTIONS = [
 ] as const;
 
 const QUESTIONS: Question[] = [
-  // Anxiety Group
   { id: "Q1", group: "Anxiety", groupColor: "text-blue-600", text: "How often do you find your mind thinking too much, even about small things?" },
   { id: "Q2", group: "Anxiety", groupColor: "text-blue-600", text: "How often do you feel tense or unable to fully relax?" },
   { id: "Q3", group: "Anxiety", groupColor: "text-blue-600", text: "How often does thinking too much make it hard for you to sleep?" },
-  // Depression Group
   { id: "Q4", group: "Depression", groupColor: "text-indigo-600", text: "How often have you been feeling emotionally low recently?" },
   { id: "Q5", group: "Depression", groupColor: "text-indigo-600", text: "How often do you feel less interested in things you usually enjoy?" },
   { id: "Q6", group: "Depression", groupColor: "text-indigo-600", text: "How often do you feel tired or without motivation, even when you haven't done much?" },
-  // Trauma / Stress Group
   { id: "Q7", group: "Trauma / Stress", groupColor: "text-amber-600", text: "How often do upsetting memories from the past suddenly come to your mind?" },
   { id: "Q8", group: "Trauma / Stress", groupColor: "text-amber-600", text: "How often do you avoid certain people or situations because they remind you of something unpleasant?" },
   { id: "Q9", group: "Trauma / Stress", groupColor: "text-amber-600", text: "How often do you feel on edge or easily startled, even when things seem okay?" },
-  // Severe Mood / Psychiatric Risk
   { id: "Q10", group: "Severe Mood", groupColor: "text-purple-600", text: "How often do your moods change very quickly without a clear reason?" },
   { id: "Q11", group: "Severe Mood", groupColor: "text-purple-600", text: "How often do you feel unusually energetic or talkative in a way that feels different from your normal self?" },
   { id: "Q12", group: "Severe Mood", groupColor: "text-purple-600", text: "How often do your thoughts feel messy or hard to control?" },
-  // Crisis / Emotional Safety
   { id: "Q13", group: "Crisis / Safety", groupColor: "text-red-600", text: "How often have you felt that life feels too difficult or overwhelming?" },
   { id: "Q14", group: "Crisis / Safety", groupColor: "text-red-600", text: "How often do you feel completely stuck or hopeless about your situation?" },
   { id: "Q15", group: "Crisis / Safety", groupColor: "text-red-600", text: "How often have you had thoughts about hurting yourself?" },
 ];
+
+const QUESTION_ID_SET = new Set(QUESTIONS.map((q) => q.id));
 
 const GROUP_RANGES: { label: string; startIdx: number; endIdx: number; color: string }[] = [
   { label: "Anxiety", startIdx: 0, endIdx: 2, color: "bg-blue-500" },
@@ -59,7 +60,6 @@ const GROUP_RANGES: { label: string; startIdx: number; endIdx: number; color: st
   { label: "Crisis / Safety", startIdx: 12, endIdx: 14, color: "bg-red-500" },
 ];
 
-/* ─── Component ─────────────────────────────────────────────────────── */
 type Props = {
   onComplete: () => void;
 };
@@ -69,6 +69,8 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [description, setDescription] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [savedPdfFileName, setSavedPdfFileName] = useState("");
+  const [loadingSavedDraft, setLoadingSavedDraft] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExtras, setShowExtras] = useState(false);
@@ -80,20 +82,139 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
   const answeredCount = Object.keys(answers).length;
   const progress = (answeredCount / QUESTIONS.length) * 100;
   const allAnswered = answeredCount === QUESTIONS.length;
+  const currentPdfFileName = pdfFile?.name ?? savedPdfFileName;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSavedDraft() {
+      try {
+        const res = await fetch("/api/mental-health/questionnaire", {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
+
+        if (!res.ok) return;
+
+        const data = (await res.json()) as {
+          ok?: boolean;
+          answers?: SavedAnswer[];
+          description?: string;
+          pdfFileName?: string;
+        };
+
+        if (!data.ok || cancelled) return;
+
+        const nextAnswers: Record<string, number> = {};
+        const rawAnswers = Array.isArray(data.answers) ? data.answers : [];
+
+        for (const answer of rawAnswers) {
+          if (
+            answer &&
+            typeof answer.questionId === "string" &&
+            QUESTION_ID_SET.has(answer.questionId) &&
+            typeof answer.value === "number" &&
+            Number.isInteger(answer.value) &&
+            answer.value >= 0 &&
+            answer.value <= 4
+          ) {
+            nextAnswers[answer.questionId] = answer.value;
+          }
+        }
+
+        if (Object.keys(nextAnswers).length > 0) {
+          setAnswers(nextAnswers);
+          const firstUnansweredIdx = QUESTIONS.findIndex(
+            (q) => nextAnswers[q.id] === undefined
+          );
+
+          if (firstUnansweredIdx === -1) {
+            setCurrentIdx(maxQuestionIndex);
+            setShowExtras(true);
+          } else {
+            setCurrentIdx(firstUnansweredIdx);
+          }
+        }
+
+        if (typeof data.description === "string") {
+          setDescription(data.description);
+        }
+
+        if (typeof data.pdfFileName === "string") {
+          setSavedPdfFileName(data.pdfFileName);
+        }
+      } catch {
+        // Non-blocking. User can still fill from scratch if fetch fails.
+      } finally {
+        if (!cancelled) {
+          setLoadingSavedDraft(false);
+        }
+      }
+    }
+
+    void loadSavedDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [maxQuestionIndex]);
+
+  const draftAnswers = useMemo(
+    () =>
+      QUESTIONS.filter((q) => answers[q.id] !== undefined).map((q) => ({
+        questionId: q.id,
+        value: answers[q.id] ?? 0,
+      })),
+    [answers]
+  );
+
+  useEffect(() => {
+    if (loadingSavedDraft || submitting) return;
+
+    const normalizedDescription = description.trim();
+    const shouldSaveDraft =
+      draftAnswers.length > 0 ||
+      normalizedDescription.length > 0 ||
+      currentPdfFileName.length > 0;
+
+    if (!shouldSaveDraft) return;
+
+    const timer = setTimeout(() => {
+      void fetch("/api/mental-health/questionnaire", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          answers: draftAnswers,
+          description: normalizedDescription,
+          pdfFileName: currentPdfFileName,
+        }),
+      }).catch(() => {
+        // Draft save failure should not block UI.
+      });
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [
+    loadingSavedDraft,
+    submitting,
+    draftAnswers,
+    description,
+    currentPdfFileName,
+  ]);
 
   function selectAnswer(value: number) {
     const willAnswerCurrentForFirstTime = answers[current.id] === undefined;
-    const nextAnsweredCount = answeredCount + (willAnswerCurrentForFirstTime ? 1 : 0);
+    const nextAnsweredCount =
+      answeredCount + (willAnswerCurrentForFirstTime ? 1 : 0);
 
     setAnswers((prev) => ({ ...prev, [current.id]: value }));
-    // Auto-advance after small delay
+
     if (safeCurrentIdx < QUESTIONS.length - 1) {
       setTimeout(
-        () => setCurrentIdx((i) => Math.min(maxQuestionIndex, i + 1)),
+        () => setCurrentIdx((idx) => Math.min(maxQuestionIndex, idx + 1)),
         300
       );
     } else if (nextAnsweredCount === QUESTIONS.length) {
-      // Last question answered, show extras
       setTimeout(() => setShowExtras(true), 300);
     }
   }
@@ -102,6 +223,7 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
     const file = e.target.files?.[0];
     if (file && file.type === "application/pdf") {
       setPdfFile(file);
+      setSavedPdfFileName("");
     }
   }
 
@@ -110,6 +232,7 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
       setError("Please answer all 15 questions before submitting.");
       return;
     }
+
     setSubmitting(true);
     setError(null);
 
@@ -120,7 +243,7 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           value: answers[q.id] ?? 0,
         })),
         description: description.trim(),
-        pdfFileName: pdfFile?.name ?? "",
+        pdfFileName: currentPdfFileName,
       };
 
       const res = await fetch("/api/mental-health/questionnaire", {
@@ -144,15 +267,24 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
     }
   }
 
-  // Determine which group the current question belongs to
   const currentGroup = GROUP_RANGES.find(
-    (g) => safeCurrentIdx >= g.startIdx && safeCurrentIdx <= g.endIdx
+    (group) => safeCurrentIdx >= group.startIdx && safeCurrentIdx <= group.endIdx
   );
+
+  if (loadingSavedDraft) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-[#64748B]">Loading your saved answers...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showExtras) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Header */}
         <div className="text-center">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 text-primary mb-4">
             <Brain className="h-7 w-7" />
@@ -163,7 +295,6 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           </p>
         </div>
 
-        {/* Description */}
         <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm p-5 space-y-3">
           <h2 className="font-semibold text-[#0F172A]">
             Anything else you&apos;d like to share?
@@ -177,7 +308,6 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           />
         </div>
 
-        {/* PDF Upload */}
         <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm p-5 space-y-3">
           <h2 className="font-semibold text-[#0F172A]">Upload a Report (PDF)</h2>
           <p className="text-xs text-[#94A3B8]">
@@ -190,14 +320,17 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
             onChange={handleFileChange}
             className="hidden"
           />
-          {pdfFile ? (
+          {currentPdfFileName ? (
             <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
               <FileText className="h-5 w-5 text-green-600" />
               <span className="text-sm text-green-700 font-medium truncate">
-                {pdfFile.name}
+                {currentPdfFileName}
               </span>
               <button
-                onClick={() => setPdfFile(null)}
+                onClick={() => {
+                  setPdfFile(null);
+                  setSavedPdfFileName("");
+                }}
                 className="ml-auto text-xs text-red-500 hover:underline"
               >
                 Remove
@@ -214,7 +347,6 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -222,7 +354,6 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           </div>
         )}
 
-        {/* Submit */}
         <div className="flex gap-3">
           <button
             onClick={() => setShowExtras(false)}
@@ -239,7 +370,7 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving…
+                Saving...
               </>
             ) : (
               <>
@@ -255,7 +386,6 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
       <div className="text-center">
         <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 text-primary mb-4">
           <Brain className="h-7 w-7" />
@@ -264,12 +394,11 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
           Mental Health Assessment
         </h1>
         <p className="text-sm text-[#64748B] mt-1">
-          Answer honestly — your responses are private and help us personalise
+          Answer honestly - your responses are private and help us personalise
           your care.
         </p>
       </div>
 
-      {/* Progress */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs text-[#64748B]">
           <span>
@@ -283,31 +412,33 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
             style={{ width: `${progress}%` }}
           />
         </div>
-        {/* Group indicators */}
         <div className="flex gap-1">
-          {GROUP_RANGES.map((g) => {
-            const groupAnswered = QUESTIONS.slice(g.startIdx, g.endIdx + 1).every(
-              (q) => answers[q.id] !== undefined
-            );
+          {GROUP_RANGES.map((group) => {
+            const groupAnswered = QUESTIONS.slice(
+              group.startIdx,
+              group.endIdx + 1
+            ).every((q) => answers[q.id] !== undefined);
+
             return (
               <button
-                key={g.label}
-                onClick={() => setCurrentIdx(Math.min(maxQuestionIndex, Math.max(0, g.startIdx)))}
+                key={group.label}
+                onClick={() =>
+                  setCurrentIdx(Math.min(maxQuestionIndex, Math.max(0, group.startIdx)))
+                }
                 className={`flex-1 h-1.5 rounded-full transition-all ${
-                  currentGroup?.label === g.label
-                    ? g.color
+                  currentGroup?.label === group.label
+                    ? group.color
                     : groupAnswered
                     ? "bg-green-300"
                     : "bg-[#E2E8F0]"
                 }`}
-                title={g.label}
+                title={group.label}
               />
             );
           })}
         </div>
       </div>
 
-      {/* Question Card */}
       <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm p-6 space-y-5">
         <div>
           <span
@@ -349,10 +480,9 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
         </div>
       </div>
 
-      {/* Navigation */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))}
+          onClick={() => setCurrentIdx((idx) => Math.max(0, idx - 1))}
           disabled={safeCurrentIdx === 0}
           className="flex items-center gap-1 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition disabled:opacity-40"
         >
@@ -362,7 +492,9 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
 
         {safeCurrentIdx < QUESTIONS.length - 1 ? (
           <button
-            onClick={() => setCurrentIdx((i) => Math.min(maxQuestionIndex, i + 1))}
+            onClick={() =>
+              setCurrentIdx((idx) => Math.min(maxQuestionIndex, idx + 1))
+            }
             className="flex items-center gap-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0F4D2A] transition shadow-sm"
           >
             Next
@@ -382,20 +514,19 @@ export default function MentalHealthQuestionnaire({ onComplete }: Props) {
         )}
       </div>
 
-      {/* Quick Nav Dots */}
       <div className="flex justify-center gap-1.5 flex-wrap">
-        {QUESTIONS.map((q, i) => (
+        {QUESTIONS.map((question, index) => (
           <button
-            key={q.id}
-            onClick={() => setCurrentIdx(Math.min(maxQuestionIndex, Math.max(0, i)))}
+            key={question.id}
+            onClick={() => setCurrentIdx(Math.min(maxQuestionIndex, Math.max(0, index)))}
             className={`h-2.5 w-2.5 rounded-full transition-all ${
-              i === safeCurrentIdx
+              index === safeCurrentIdx
                 ? "bg-primary scale-125"
-                : answers[q.id] !== undefined
+                : answers[question.id] !== undefined
                 ? "bg-green-400"
                 : "bg-[#CBD5E1]"
             }`}
-            title={`Q${i + 1}`}
+            title={`Q${index + 1}`}
           />
         ))}
       </div>

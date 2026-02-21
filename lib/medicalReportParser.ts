@@ -1,3 +1,8 @@
+import {
+  analyzeReportTextWithNlp,
+  type ReportNlpResult,
+} from "@/lib/reportNlp";
+
 export type ExtractedMedicalInfo = {
   hospitalName?: string;
   reportType?: string;
@@ -20,6 +25,7 @@ export type ExtractedMedicalInfo = {
     prescription?: string;
   };
   keyInsights: string[];
+  nlp?: ReportNlpResult;
 };
 
 function matchFirst(text: string, pattern: RegExp): string | undefined {
@@ -53,6 +59,7 @@ function extractSection(text: string, startLabel: string, endLabels: string[]): 
 
 export function parseMedicalReportText(rawText: string): ExtractedMedicalInfo {
   const text = rawText.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  const nlp = analyzeReportTextWithNlp(text);
 
   const hospitalName =
     matchFirst(text, /^([^\n]*Hospital[^\n]*)/im) ??
@@ -102,6 +109,20 @@ export function parseMedicalReportText(rawText: string): ExtractedMedicalInfo {
     }
   }
 
+  if (nlp.abnormalFindings.length > 0) {
+    keyInsights.push(
+      `NLP flagged ${nlp.abnormalFindings.length} attention-worthy finding(s) for follow-up.`
+    );
+  }
+
+  if (nlp.medications.length > 0) {
+    keyInsights.push(
+      `NLP extracted ${nlp.medications.length} medicine instruction(s) from the report text.`
+    );
+  }
+
+  const uniqueKeyInsights = Array.from(new Set(keyInsights));
+
   return {
     hospitalName,
     reportType,
@@ -123,6 +144,7 @@ export function parseMedicalReportText(rawText: string): ExtractedMedicalInfo {
       diagnosis,
       prescription,
     },
-    keyInsights,
+    keyInsights: uniqueKeyInsights,
+    nlp,
   };
 }

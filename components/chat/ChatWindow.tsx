@@ -120,13 +120,16 @@ export default function ChatWindow({ userId, userName = "there" }: ChatWindowPro
         body: JSON.stringify({ chatId, sessionId, userId, userChat: text }),
       });
 
-        const payload = (await res.json()) as {
-          ok: boolean;
-          output?: string;
-          message?: string;
-        };
+      const payload = (await res.json()) as {
+        ok: boolean;
+        output?: string;
+        message?: string;
+      };
 
-        const reply =
+      const botMsg: Message = {
+        id: randomUUID(),
+        role: "assistant",
+        content:
           payload.ok && payload.output
             ? payload.output
             : (payload.message ?? "Sorry, something went wrong."),
