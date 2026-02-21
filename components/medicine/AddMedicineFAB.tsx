@@ -3,20 +3,22 @@
 import { useState, useRef } from "react";
 import { Plus, Camera, Keyboard } from "lucide-react";
 import toast from "react-hot-toast";
+import PrescriptionReviewModal from "@/components/medicine/PrescriptionReviewModal";
+import type { ExtractedMedicine } from "@/types/medicine";
 
 interface AddMedicineFABProps {
-  /** Current user id to tag medicines in the DB */
-  userId: string;
-  /** Optional callback to refresh the parent page data after a successful upload */
-  refreshDashboardData?: () => void;
+  /** Optional callback to refresh the parent page data after a successful save */
+  onRefresh?: () => void;
 }
 
-export default function AddMedicineFAB({
-  userId,
-  refreshDashboardData,
-}: AddMedicineFABProps) {
+export default function AddMedicineFAB({ onRefresh }: AddMedicineFABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [reviewData, setReviewData] = useState<{
+    extracted: ExtractedMedicine[];
+    rawText: string;
+  } | null>(null);
+  const [showManualModal, setShowManualModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── OCR upload handler ─────────────────────────────────────── */
@@ -31,7 +33,6 @@ export default function AddMedicineFAB({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("userId", userId);
 
       const response = await fetch("/api/medicine/extract-tesseract", {
         method: "POST",
@@ -45,11 +46,15 @@ export default function AddMedicineFAB({
 
       if (!response.ok) throw new Error(data.error ?? "OCR extraction failed");
 
-      toast.success(`Successfully added ${data.count} reminders!`, {
+      toast.success(`Detected ${data.count} medicine${data.count > 1 ? "s" : ""}! Review below.`, {
         id: "ocr-toast",
       });
 
-      if (typeof refreshDashboardData === "function") refreshDashboardData();
+      // Open review modal instead of auto-saving
+      setReviewData({
+        extracted: data.data,
+        rawText: data.rawText,
+      });
     } catch (error) {
       console.error(error);
       const message =
@@ -63,6 +68,12 @@ export default function AddMedicineFAB({
       setIsUploading(false);
       e.target.value = "";
     }
+  };
+
+  /* ── Manual add handler ─────────────────────────────────────── */
+  const handleManualAdd = () => {
+    setIsOpen(false);
+    setShowManualModal(true);
   };
 
   return (
@@ -80,31 +91,28 @@ export default function AddMedicineFAB({
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20"
+          className="fixed inset-0 z-30 bg-black/20"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Speed-dial options */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 flex flex-col gap-3 items-end">
+        <div className="fixed bottom-28 right-5 z-40 w-60 bg-white border border-gray-200 rounded-2xl shadow-xl p-2.5 flex flex-col gap-2">
           <button
             onClick={() => {
               fileInputRef.current?.click();
               setIsOpen(false);
             }}
-            className="flex items-center gap-2 bg-white shadow-lg rounded-full pl-4 pr-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-2 rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <Camera className="h-4 w-4 text-primary" />
             Scan Prescription
           </button>
 
           <button
-            onClick={() => {
-              setIsOpen(false);
-              toast("Manual entry coming soon!", { icon: "✏️" });
-            }}
-            className="flex items-center gap-2 bg-white shadow-lg rounded-full pl-4 pr-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-gray-50 transition-colors"
+            onClick={handleManualAdd}
+            className="w-full flex items-center gap-2 rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <Keyboard className="h-4 w-4 text-primary" />
             Add Manually
@@ -116,7 +124,7 @@ export default function AddMedicineFAB({
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         disabled={isUploading}
-        className={`fixed bottom-24 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
+        className={`fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
           isUploading
             ? "bg-gray-400 cursor-wait"
             : "bg-primary hover:bg-primary/90 active:scale-95"
@@ -132,6 +140,42 @@ export default function AddMedicineFAB({
           />
         )}
       </button>
+
+      {/* Prescription Review Modal (after OCR) */}
+      {reviewData && (
+        <PrescriptionReviewModal
+          extracted={reviewData.extracted}
+          rawText={reviewData.rawText}
+          mode="ocr"
+          onClose={() => setReviewData(null)}
+          onSaved={() => {
+            setReviewData(null);
+            onRefresh?.();
+          }}
+        />
+      )}
+
+      {/* Manual Add Modal — reuse Review modal with blank entry */}
+      {showManualModal && (
+        <PrescriptionReviewModal
+          extracted={[
+            {
+              name: "",
+              dosage: "",
+              frequency: "Once daily",
+              times: ["09:00"],
+              instruction: "",
+            },
+          ]}
+          rawText=""
+          mode="manual"
+          onClose={() => setShowManualModal(false)}
+          onSaved={() => {
+            setShowManualModal(false);
+            onRefresh?.();
+          }}
+        />
+      )}
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ChatMessage, { type Message } from "./ChatMessage";
 import ChatInput from "./ChatInput";
+import VoiceModeOverlay from "./VoiceModeOverlay";
 import { randomUUID } from "@/lib/uuid";
 import { Leaf, Brain } from "lucide-react";
 

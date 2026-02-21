@@ -5,9 +5,12 @@ interface DailyProgressWidgetProps {
 }
 
 export default function DailyProgressWidget({
-  progress = { taken: 3, missed: 1, pending: 1, total: 5 },
+  progress = { taken: 0, missed: 0, snoozed: 0, pending: 0, total: 0 },
 }: DailyProgressWidgetProps) {
-  const percent = Math.round((progress.taken / progress.total) * 100);
+  const percent =
+    progress.total > 0
+      ? Math.round((progress.taken / progress.total) * 100)
+      : 0;
   const circumference = 2 * Math.PI * 40;
   const offset = circumference - (percent / 100) * circumference;
 

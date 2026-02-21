@@ -32,10 +32,22 @@ export default function QRScannerCard() {
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
-  function navigateToPatient(patientId: string) {
+  function handleScanResult(rawValue: string) {
     stopCamera();
     setState("processing");
-    router.push(`/doctor/patient/${encodeURIComponent(patientId.trim())}`);
+    const trimmed = rawValue.trim();
+
+    // If it's a share token from the patient QR, go to shared view
+    if (trimmed.startsWith("share:")) {
+      const token = trimmed.slice("share:".length);
+      router.push(`/doctor/shared/${encodeURIComponent(token)}`);
+    } else if (trimmed.startsWith("pid-")) {
+      // Manual entry support: short patient share ID
+      router.push(`/doctor/shared/${encodeURIComponent(trimmed)}`);
+    } else {
+      // Legacy: treat as patient ID
+      router.push(`/doctor/patient/${encodeURIComponent(trimmed)}`);
+    }
   }
 
   async function startScanning() {
@@ -64,7 +76,7 @@ export default function QRScannerCard() {
           try {
             const barcodes = await detector.detect(videoRef.current);
             if (barcodes.length > 0 && barcodes[0].rawValue) {
-              navigateToPatient(barcodes[0].rawValue);
+              handleScanResult(barcodes[0].rawValue);
             }
           } catch {
             /* frame not ready */
@@ -73,13 +85,13 @@ export default function QRScannerCard() {
       } else {
         // Fallback: show camera feed but ask for manual input
         setErrorMsg(
-          "QR auto-detect not supported in this browser. Use manual Patient ID instead."
+          "QR auto-detect not supported in this browser. Use manual Patient ID / Share ID instead."
         );
       }
     } catch (err) {
       setState("error");
       setErrorMsg(
-        "Camera access denied. Please allow camera permissions or enter the Patient ID manually."
+        "Camera access denied. Please allow camera permissions or enter the Patient ID / Share ID manually."
       );
     }
   }
@@ -88,7 +100,7 @@ export default function QRScannerCard() {
     e.preventDefault();
     const trimmed = manualId.trim();
     if (!trimmed) return;
-    navigateToPatient(trimmed);
+    handleScanResult(trimmed);
   }
 
   return (
@@ -171,7 +183,7 @@ export default function QRScannerCard() {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-white px-3 text-[#94A3B8]">
-              or enter Patient ID
+              or enter Patient ID / Share ID
             </span>
           </div>
         </div>
@@ -182,7 +194,7 @@ export default function QRScannerCard() {
             type="text"
             value={manualId}
             onChange={(e) => setManualId(e.target.value)}
-            placeholder="Patient ID (e.g. abc-1234-xyz)"
+            placeholder="Patient ID or Share ID (e.g. pid-micxk2ab7f)"
             className="flex-1 rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-primary focus:ring-2 focus:ring-[#D1FAE5]"
           />
           <button
