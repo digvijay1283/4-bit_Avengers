@@ -19,7 +19,8 @@ export type Medicine = {
   isActive: boolean;
   totalQuantity: number;
   remainingQuantity: number;
-  missedStreakCount: number; // consecutive missed doses — alerts after 5
+  missedStreakCount: number; // consecutive missed doses - alerts after 2
+  nextReminderTime?: string | null;
   createdAt: string;
   updatedAt: string;
 };

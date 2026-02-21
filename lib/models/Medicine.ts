@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model, models, model } from "mongoose";
 
-// ─── Document interface ───────────────────────────────────────────────────────
+// Document interface
 export interface IMedicine extends Document {
   userId: string;
   name: string;
@@ -13,7 +13,7 @@ export interface IMedicine extends Document {
   isActive: boolean;
   totalQuantity: number;
   remainingQuantity: number;
-  missedStreakCount: number;       // consecutive missed — alert after ≥ 5
+  missedStreakCount: number;      // consecutive missed - alert after >= 2
   createdAt: Date;
   updatedAt: Date;
 }
