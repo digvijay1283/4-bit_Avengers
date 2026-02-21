@@ -8,9 +8,11 @@ import HealthStatsRow from "@/components/profile/HealthStatsRow";
 import DailyRoutine from "@/components/profile/DailyRoutine";
 import UpcomingAppointments from "@/components/profile/UpcomingAppointments";
 import QuickBook from "@/components/profile/QuickBook";
+import DoctorProfileView from "@/components/profile/DoctorProfileView";
 import type { RoutineItem } from "@/components/profile/DailyRoutine";
 import type { Appointment } from "@/components/profile/UpcomingAppointments";
 import type { TimeSlot } from "@/components/profile/QuickBook";
+import { useSession } from "@/hooks/useSession";
 
 /* ── Mock Data ──────────────────────────────────────────────── */
 
@@ -108,6 +110,15 @@ const timeSlots: TimeSlot[] = [
 /* ── Page Component ─────────────────────────────────────────── */
 
 export default function ProfilePage() {
+  const { user } = useSession();
+  const role = user?.role ?? "user";
+
+  // Doctor gets a doctor-specific profile view
+  if (role === "doctor") {
+    return <DoctorProfileView />;
+  }
+
+  // User profile
   return (
     <main className="flex-1 flex flex-col min-h-0">
       {/* Page Header */}

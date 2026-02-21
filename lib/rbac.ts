@@ -8,6 +8,7 @@ export type AuthUser = {
   userId: string;
   email: string;
   role: AppRole;
+  fullName: string;
 };
 
 export async function getAuthUser(): Promise<AuthUser | null> {
@@ -29,6 +30,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       userId: payload.sub,
       email: payload.email,
       role: normalizedRole,
+      fullName: (payload as { fullName?: string }).fullName ?? "",
     };
   } catch {
     return null;

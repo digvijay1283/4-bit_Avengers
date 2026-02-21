@@ -9,13 +9,24 @@ import {
   User,
   Pill,
   Stethoscope,
+  MessageCircle,
+  Brain,
 } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 
-const bottomNavItems = [
-  { label: "Home", href: "/", icon: Home },
+/* ── Role-specific bottom-nav tabs ──────────────────────── */
+const userBottomNav = [
   { label: "Dash", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Report", href: "/reports", icon: FileText },
+  { label: "Reports", href: "/reports", icon: FileText },
+  // Center FAB goes here (index 2)
+  { label: "Mental", href: "/mental-health", icon: Brain },
+  { label: "Profile", href: "/profile", icon: User },
+];
+
+const doctorBottomNav = [
+  { label: "Console", href: "/doctor", icon: LayoutDashboard },
+  { label: "Chat", href: "/chat", icon: MessageCircle },
+  // Center FAB goes here (index 2)
   { label: "Profile", href: "/profile", icon: User },
 ];
 
@@ -24,15 +35,21 @@ export default function MobileNav() {
   const { user } = useSession();
   const role = user?.role ?? "user";
 
-  const centerLink = role === "doctor" ? "/doctor" : "/medi-reminder";
-  const CenterIcon = role === "doctor" ? Stethoscope : Pill;
+  const isDoctor = role === "doctor";
+  const items = isDoctor ? doctorBottomNav : userBottomNav;
+  const centerLink = isDoctor ? "/doctor" : "/medi-reminder";
+  const CenterIcon = isDoctor ? Stethoscope : Pill;
+
+  // Split items around center FAB
+  const leftItems = isDoctor ? items.slice(0, 2) : items.slice(0, 2);
+  const rightItems = isDoctor ? items.slice(2) : items.slice(2);
 
   return (
     <>
       {/* Bottom Navigation — visible on mobile only */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-gray-700 pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
         <div className="flex justify-between items-end pb-3">
-          {bottomNavItems.slice(0, 2).map((item) => {
+          {leftItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -59,7 +76,7 @@ export default function MobileNav() {
             <CenterIcon className="h-5 w-5 text-white" />
           </Link>
 
-          {bottomNavItems.slice(2).map((item) => {
+          {rightItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (

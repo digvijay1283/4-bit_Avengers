@@ -15,6 +15,7 @@ export type SessionUser = {
   userId: string;
   email: string;
   role: AppRole;
+  fullName: string;
 };
 
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";

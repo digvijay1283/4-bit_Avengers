@@ -11,6 +11,7 @@ export type AuthTokenPayload = JwtPayload & {
   sub: string;
   email: string;
   role: "user" | "doctor";
+  fullName: string;
 };
 
 // ─── Password helpers ────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ export function signAuthToken(payload: {
   sub: string;
   email: string;
   role: "user" | "doctor";
+  fullName: string;
 }): string {
   return jwt.sign(payload, JWT_SECRET, SIGN_OPTIONS);
 }
