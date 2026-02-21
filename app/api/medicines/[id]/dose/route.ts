@@ -21,9 +21,10 @@ export async function POST(
     await dbConnect();
 
     const body = await req.json();
-    const { action, scheduledTime } = body as {
+    const { action, scheduledTime, snoozeMinutes } = body as {
       action: "taken" | "snoozed" | "missed" | "skipped";
       scheduledTime: string; // "09:00"
+      snoozeMinutes?: number;
     };
 
     if (!action || !scheduledTime) {
@@ -47,6 +48,16 @@ export async function POST(
 
     const today = new Date().toISOString().slice(0, 10);
 
+    const minutesToSnooze =
+      typeof snoozeMinutes === "number" && snoozeMinutes > 0
+        ? snoozeMinutes
+        : 5;
+
+    const snoozedUntil =
+      action === "snoozed"
+        ? new Date(Date.now() + minutesToSnooze * 60 * 1000)
+        : null;
+
     // Upsert the dose log for this time slot today
     const doseLog = await DoseLog.findOneAndUpdate(
       {
@@ -59,6 +70,7 @@ export async function POST(
           userId: payload.sub,
           action,
           actionAt: new Date(),
+          snoozedUntil,
         },
       },
       { upsert: true, new: true }

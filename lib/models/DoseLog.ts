@@ -8,6 +8,7 @@ export interface IDoseLog extends Document {
   scheduledDate: string;          // "2025-02-20"
   action: "taken" | "snoozed" | "missed" | "skipped";
   actionAt: Date;
+  snoozedUntil?: Date;
   createdAt: Date;
 }
 
@@ -25,6 +26,7 @@ const DoseLogSchema = new Schema<IDoseLog>(
       required: true,
     },
     actionAt: { type: Date, default: Date.now },
+    snoozedUntil: { type: Date, required: false },
   },
   {
     timestamps: true,

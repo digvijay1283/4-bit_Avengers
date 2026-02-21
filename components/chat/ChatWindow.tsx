@@ -42,6 +42,7 @@ export default function ChatWindow({ userId, userName = "there" }: ChatWindowPro
   const [isLoading, setIsLoading] = useState(false);
   // isProactiveTyping = bot is about to push a proactive message
   const [isProactiveTyping, setIsProactiveTyping] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
 
   const [chatId] = useState(() => randomUUID());
   const [sessionId] = useState(() => randomUUID());
@@ -120,16 +121,21 @@ export default function ChatWindow({ userId, userName = "there" }: ChatWindowPro
         body: JSON.stringify({ chatId, sessionId, userId, userChat: text }),
       });
 
-        const payload = (await res.json()) as {
-          ok: boolean;
-          output?: string;
-          message?: string;
-        };
+      const payload = (await res.json()) as {
+        ok: boolean;
+        output?: string;
+        message?: string;
+      };
 
-        const reply =
-          payload.ok && payload.output
-            ? payload.output
-            : (payload.message ?? "Sorry, something went wrong."),
+      const reply =
+        payload.ok && payload.output
+          ? payload.output
+          : payload.message ?? "Sorry, something went wrong.";
+
+      const botMsg: Message = {
+        id: randomUUID(),
+        role: "assistant",
+        content: reply,
       };
 
       setMessages((prev) => [...prev, botMsg]);
@@ -138,6 +144,54 @@ export default function ChatWindow({ userId, userName = "there" }: ChatWindowPro
         ...prev,
         { id: randomUUID(), role: "assistant", content: "Network error. Please try again." },
       ]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleVoiceSend(text: string): Promise<string> {
+    const userMsg: Message = {
+      id: randomUUID(),
+      role: "user",
+      content: text,
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId, sessionId, userId, userChat: text }),
+      });
+
+      const payload = (await res.json()) as {
+        ok: boolean;
+        output?: string;
+        message?: string;
+      };
+
+      const reply =
+        payload.ok && payload.output
+          ? payload.output
+          : payload.message ?? "Sorry, something went wrong.";
+
+      const botMsg: Message = {
+        id: randomUUID(),
+        role: "assistant",
+        content: reply,
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+      return reply;
+    } catch {
+      const fallback = "Network error. Please try again.";
+      setMessages((prev) => [
+        ...prev,
+        { id: randomUUID(), role: "assistant", content: fallback },
+      ]);
+      return fallback;
     } finally {
       setIsLoading(false);
     }

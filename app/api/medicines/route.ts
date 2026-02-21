@@ -5,6 +5,12 @@ import { dbConnect } from "@/lib/mongodb";
 import Medicine from "@/lib/models/Medicine";
 import DoseLog from "@/lib/models/DoseLog";
 
+function toHHMM(date: Date): string {
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 // ─── GET /api/medicines — list user's medicines ───────────────────────────────
 export async function GET() {
   try {
@@ -36,19 +42,41 @@ export async function GET() {
     const enriched = medicines.map((med) => {
       // For each scheduled time, check if there's a log
       const statuses: string[] = [];
+      const effectiveTimes: string[] = [];
+      const futureReminderMinutes: number[] = [];
 
       for (const time of med.times) {
-        const [h, m] = time.split(":").map(Number);
-        const timeMinutes = h * 60 + m;
-
         const log = todayLogs.find(
           (l) =>
             String(l.medicineId) === String(med._id) &&
             l.scheduledTime === time
         );
 
-        if (log) {
-          statuses.push(log.action);
+        const snoozedUntilDate =
+          log?.action === "snoozed" && log.snoozedUntil
+            ? new Date(log.snoozedUntil)
+            : null;
+
+        const effectiveTime = snoozedUntilDate ? toHHMM(snoozedUntilDate) : time;
+        effectiveTimes.push(effectiveTime);
+
+        const [h, m] = effectiveTime.split(":").map(Number);
+        const timeMinutes = h * 60 + m;
+
+        if (timeMinutes >= currentMinutes) {
+          futureReminderMinutes.push(timeMinutes);
+        }
+
+        if (log?.action === "taken") {
+          statuses.push("taken");
+        } else if (log?.action === "skipped") {
+          statuses.push("upcoming");
+        } else if (
+          log?.action === "snoozed" &&
+          snoozedUntilDate &&
+          snoozedUntilDate.getTime() > now.getTime()
+        ) {
+          statuses.push("snoozed");
         } else if (currentMinutes >= timeMinutes + 30) {
           statuses.push("missed");
         } else if (currentMinutes >= timeMinutes - 15) {
@@ -65,9 +93,24 @@ export async function GET() {
       if (statuses.includes("snoozed")) status = "snoozed";
       if (statuses.every((s) => s === "taken")) status = "taken";
 
+      const nextReminderMinutes =
+        futureReminderMinutes.length > 0
+          ? Math.min(...futureReminderMinutes)
+          : null;
+      const nextReminderTime =
+        nextReminderMinutes !== null
+          ? `${Math.floor(nextReminderMinutes / 60)
+              .toString()
+              .padStart(2, "0")}:${(nextReminderMinutes % 60)
+              .toString()
+              .padStart(2, "0")}`
+          : null;
+
       return {
         ...med,
         _id: String(med._id),
+        times: [...new Set(effectiveTimes)],
+        nextReminderTime,
         status,
       };
     });

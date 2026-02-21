@@ -89,6 +89,15 @@ export default function MedicineCard({
     })
     .join(", ");
 
+  const nextReminderLabel = medicine.nextReminderTime
+    ? (() => {
+        const [h, m] = medicine.nextReminderTime.split(":").map(Number);
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h % 12 || 12;
+        return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+      })()
+    : null;
+
   return (
     <div
       className={cn(
@@ -217,7 +226,7 @@ export default function MedicineCard({
               Take Now
             </button>
             <p className="mt-2 text-xs text-blue-500 text-center font-medium">
-              Snoozed — will remind again
+              Snoozed{nextReminderLabel ? ` until ${nextReminderLabel}` : " — will remind again"}
             </p>
           </>
         )}

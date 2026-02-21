@@ -15,12 +15,12 @@ import EditMedicineModal from "@/components/medicine/EditMedicineModal";
 import type { Medicine, MedicalTest, DailyProgress, LowStockItem } from "@/types/medicine";
 import toast from "react-hot-toast";
 
-/* ── Mock data (medical tests — to be DB-backed later) ──────── */
+/* â”€â”€ Mock data (medical tests â€” to be DB-backed later) â”€â”€â”€â”€â”€â”€â”€â”€ */
 const mockMedicalTests: MedicalTest[] = [
   {
     id: "t1",
     name: "Complete Blood Count (CBC)",
-    description: "Routine blood panel — fasting required",
+    description: "Routine blood panel â€” fasting required",
     scheduledDate: "Feb 24, 2026",
     scheduledTime: "10:30 AM",
     location: "City Diagnostics Lab",
@@ -67,11 +67,11 @@ export default function MediReminderPage() {
   const [loading, setLoading] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [missedAlerts, setMissedAlerts] = useState<
-    { medicineId: string; medicineName: string; missedCount: number }[]
+    { medicineId: string; medicineName: string; missedCount: number; guardianCalled?: boolean; guardianName?: string; callingInProgress?: boolean }[]
   >([]);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
 
-  // ─── Fetch medicines from API ──────────────────────────────
+  // â”€â”€â”€ Fetch medicines from API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchMedicines = useCallback(async () => {
     try {
       const res = await fetch("/api/medicines");
@@ -93,7 +93,7 @@ export default function MediReminderPage() {
     return () => clearInterval(interval);
   }, [fetchMedicines]);
 
-  // ─── Dose action handler ───────────────────────────────────
+  // â”€â”€â”€ Dose action handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleDoseAction = useCallback(
     async (
       medicineId: string,
@@ -124,7 +124,7 @@ export default function MediReminderPage() {
   const handleTake = useCallback(
     (medicineId: string, scheduledTime: string) => {
       handleDoseAction(medicineId, "taken", scheduledTime);
-      toast.success("Medicine taken!", { icon: "💊" });
+      toast.success("Medicine taken!", { icon: "ðŸ’Š" });
     },
     [handleDoseAction]
   );
@@ -132,7 +132,7 @@ export default function MediReminderPage() {
   const handleSnooze = useCallback(
     (medicineId: string, scheduledTime: string) => {
       handleDoseAction(medicineId, "snoozed", scheduledTime);
-      toast("Snoozed for 5 minutes", { icon: "⏰" });
+      toast("Snoozed for 5 minutes", { icon: "â°" });
     },
     [handleDoseAction]
   );
@@ -140,7 +140,7 @@ export default function MediReminderPage() {
   const handleSkip = useCallback(
     (medicineId: string, scheduledTime: string) => {
       handleDoseAction(medicineId, "skipped", scheduledTime);
-      toast("Logged as skipped", { icon: "⏭️" });
+      toast("Logged as skipped", { icon: "â­ï¸" });
     },
     [handleDoseAction]
   );
@@ -173,7 +173,73 @@ export default function MediReminderPage() {
     [medicines]
   );
 
-  // ─── Compute daily progress ─────────────────────────────────
+  // Guardian alert â€” call the emergency contact via Twilio voice call
+  const handleGuardianAlert = useCallback(
+    async (medicineId: string, medicineName: string, missedCount: number) => {
+      // Mark as calling in progress
+      setMissedAlerts((prev) => {
+        const exists = prev.some((a) => a.medicineId === medicineId);
+        if (exists) {
+          return prev.map((a) =>
+            a.medicineId === medicineId
+              ? { ...a, callingInProgress: true }
+              : a
+          );
+        }
+        return [
+          ...prev,
+          { medicineId, medicineName, missedCount, callingInProgress: true },
+        ];
+      });
+
+      try {
+        const res = await fetch("/api/medicines/alert-guardian", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ medicineName, missedCount }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          toast.success(
+            `Guardian ${data.guardianName} alerted via phone call!`,
+            { icon: "\uD83D\uDCDE", duration: 6000 }
+          );
+          setMissedAlerts((prev) =>
+            prev.map((a) =>
+              a.medicineId === medicineId
+                ? {
+                    ...a,
+                    callingInProgress: false,
+                    guardianCalled: true,
+                    guardianName: data.guardianName,
+                  }
+                : a
+            )
+          );
+        } else {
+          setMissedAlerts((prev) =>
+            prev.map((a) =>
+              a.medicineId === medicineId
+                ? { ...a, callingInProgress: false }
+                : a
+            )
+          );
+        }
+      } catch {
+        setMissedAlerts((prev) =>
+          prev.map((a) =>
+            a.medicineId === medicineId
+              ? { ...a, callingInProgress: false }
+              : a
+          )
+        );
+      }
+    },
+    []
+  );
+
+  // â”€â”€â”€ Compute daily progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const progress: DailyProgress = {
     taken: medicines.filter((m) => m.status === "taken").length,
     missed: medicines.filter((m) => m.status === "missed").length,
@@ -184,7 +250,7 @@ export default function MediReminderPage() {
     total: medicines.length,
   };
 
-  // ─── Compute low stock items ────────────────────────────────
+  // â”€â”€â”€ Compute low stock items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const lowStock: LowStockItem[] = medicines
     .filter((m) => m.remainingQuantity <= 5 && m.remainingQuantity > 0)
     .map((m) => ({
@@ -226,7 +292,7 @@ export default function MediReminderPage() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 pb-28 bg-[#F8FAFC]">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-          {/* Left — Main content */}
+          {/* Left â€” Main content */}
           <div className="flex-1 flex flex-col gap-6">
             {/* Main tab switcher: Medicines / Medical Tests */}
             <MainTabSwitcher activeTab={mainTab} onTabChange={setMainTab} />
@@ -298,12 +364,13 @@ export default function MediReminderPage() {
         </div>
       </div>
 
-      {/* Voice Reminder System (invisible — runs in background) */}
+      {/* Voice Reminder System (invisible â€” runs in background) */}
       <VoiceReminderSystem
         medicines={medicines}
         audioEnabled={audioEnabled}
         onDoseAction={handleVoiceDoseAction}
         onMissedStreak={handleMissedStreak}
+        onGuardianAlert={handleGuardianAlert}
       />
 
       {/* Missed Alarm Alerts */}
@@ -314,9 +381,10 @@ export default function MediReminderPage() {
             prev.filter((a) => a.medicineId !== id)
           )
         }
+        onCallGuardian={handleGuardianAlert}
       />
 
-      {/* FAB — scan prescription via OCR / manual add */}
+      {/* FAB â€” scan prescription via OCR / manual add */}
       <AddMedicineFAB onRefresh={fetchMedicines} />
 
       {/* Edit medicine modal */}

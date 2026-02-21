@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Bell, Save, X, Pencil, Loader2 } from "lucide-react";
+import { Bell, Save, X, Pencil, Loader2, Phone, UserCheck, ShieldAlert } from "lucide-react";
 import ProfileCard from "@/components/profile/ProfileCard";
 import PersonalInfo from "@/components/profile/PersonalInfo";
 import HealthStatsRow from "@/components/profile/HealthStatsRow";
@@ -293,6 +293,85 @@ export default function ProfilePage() {
 
           {/* ── Right Column (3 cols) ──────────────────────── */}
           <div className="lg:col-span-3 flex flex-col gap-6">
+            {/* Emergency Contact / Guardian */}
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
+                  <ShieldAlert className="h-4 w-4 text-red-500" />
+                </div>
+                <h3 className="font-bold text-lg text-slate-900">
+                  Emergency Contact
+                </h3>
+              </div>
+
+              {profile.emergencyContactName ? (
+                <div className="space-y-3">
+                  {/* Guardian name */}
+                  <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                    <UserCheck className="h-4.5 w-4.5 text-primary flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                        Guardian / Caretaker
+                      </p>
+                      <p className="text-sm font-semibold text-slate-800 truncate">
+                        {profile.emergencyContactName}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Guardian phone */}
+                  <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                    <Phone className="h-4.5 w-4.5 text-emerald-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                        Phone Number
+                      </p>
+                      <p className="text-sm font-semibold text-slate-800 truncate">
+                        {profile.emergencyContactPhone || "Not set"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Info note */}
+                  <p className="text-[11px] text-slate-400 leading-relaxed mt-1 px-1">
+                    This contact will be alerted via phone call if you miss
+                    consecutive medication reminders.
+                  </p>
+
+                  {/* Edit button */}
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="w-full mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 rounded-xl py-2.5 transition"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Update Contact
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center py-3 gap-3">
+                  <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center">
+                    <ShieldAlert className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      No guardian set
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5 max-w-[200px]">
+                      Add an emergency contact so we can alert them if you miss
+                      your medications.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl px-4 py-2 transition"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Add Emergency Contact
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Quick Links */}
             <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6">
               <h3 className="font-bold text-lg text-slate-900 mb-4">
