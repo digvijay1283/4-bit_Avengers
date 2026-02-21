@@ -9,6 +9,8 @@ export interface IUser extends Document {
   passwordHash: string;          // always stored; select: false keeps it hidden
   avatarUrl?: string;
   phone?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   role: "user" | "doctor" | "admin";
   status: "active" | "inactive";
   lastLoginAt?: Date;
@@ -34,6 +36,8 @@ const userSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true, select: false },
     avatarUrl: { type: String, trim: true },
     phone: { type: String, trim: true },
+    emergencyContactName: { type: String, trim: true },
+    emergencyContactPhone: { type: String, trim: true },
     role: { type: String, enum: ["user", "doctor", "admin"], default: "user" },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     lastLoginAt: { type: Date },

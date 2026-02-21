@@ -9,15 +9,21 @@ export async function POST(request: Request) {
       fullName?: string;
       email?: string;
       password?: string;
+      confirmPassword?: string;
       role?: "user" | "doctor";
+      emergencyContactName?: string;
+      emergencyContactPhone?: string;
     };
 
     const fullName = body.fullName?.trim();
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
+    const confirmPassword = body.confirmPassword ?? "";
     const role = body.role === "doctor" ? "doctor" : "user";
     const roleForPersistence: "user" | "doctor" | "admin" =
       role === "doctor" ? "admin" : "user";
+    const emergencyContactName = body.emergencyContactName?.trim() || undefined;
+    const emergencyContactPhone = body.emergencyContactPhone?.trim() || undefined;
 
     if (!fullName || !email || !password) {
       return NextResponse.json(
@@ -29,6 +35,13 @@ export async function POST(request: Request) {
     if (password.length < 8) {
       return NextResponse.json(
         { ok: false, message: "Password must be at least 8 characters." },
+        { status: 400 }
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { ok: false, message: "Passwords do not match." },
         { status: 400 }
       );
     }
@@ -50,6 +63,8 @@ export async function POST(request: Request) {
       email,
       passwordHash,
       role: roleForPersistence,
+      ...(emergencyContactName && { emergencyContactName }),
+      ...(emergencyContactPhone && { emergencyContactPhone }),
     });
 
     const normalizedRole: "user" | "doctor" =

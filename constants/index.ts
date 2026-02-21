@@ -64,7 +64,6 @@ const USER_NAV_ITEMS = [
 // Doctor nav: doctor-specific pages
 const DOCTOR_NAV_ITEMS = [
   { label: "Dashboard", href: ROUTES.DOCTOR, icon: "LayoutDashboard" },
-  { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
 ] as const;
 
@@ -76,7 +75,7 @@ export const ROUTE_ACCESS: Record<string, AppRole[]> = {
   [ROUTES.REPORTS]: ["user"],
   [ROUTES.MENTAL_HEALTH]: ["user"],
   [ROUTES.UPLOAD]: ["user"],
-  [ROUTES.CHAT]: ["user", "doctor"],
+  [ROUTES.CHAT]: ["user"],
   [ROUTES.DOCTOR]: ["doctor"],
   [ROUTES.DOCTOR_PATIENT]: ["doctor"],
   [ROUTES.PROFILE]: ["user", "doctor"],

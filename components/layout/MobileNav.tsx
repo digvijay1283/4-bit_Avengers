@@ -9,7 +9,6 @@ import {
   User,
   Pill,
   Stethoscope,
-  MessageCircle,
   Brain,
 } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
@@ -25,8 +24,7 @@ const userBottomNav = [
 
 const doctorBottomNav = [
   { label: "Console", href: "/doctor", icon: LayoutDashboard },
-  { label: "Chat", href: "/chat", icon: MessageCircle },
-  // Center FAB goes here (index 2)
+  // Center FAB goes here (index 1)
   { label: "Profile", href: "/profile", icon: User },
 ];
 
