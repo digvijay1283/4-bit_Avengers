@@ -1,18 +1,36 @@
 import type { Metadata } from "next";
+import DoctorHero from "@/components/doctor/DoctorHero";
+import DoctorStatsGrid from "@/components/doctor/DoctorStatsGrid";
+import QRScannerCard from "@/components/doctor/QRScannerCard";
+import RecentPatientsTable from "@/components/doctor/RecentPatientsTable";
+import DoctorQuickActions from "@/components/doctor/DoctorQuickActions";
 
 export const metadata: Metadata = {
-  title: "Doctor Console",
+  title: "Doctor Console | VitalAI",
 };
 
 export default function DoctorPage() {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-[#0F172A]">Doctor Console</h1>
-        <p className="mt-2 text-sm text-[#64748B]">
-          This area is restricted to doctor accounts. You can place doctor-only workflows here.
-        </p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Hero */}
+      <DoctorHero />
+
+      {/* Stats */}
+      <div className="mt-6">
+        <DoctorStatsGrid />
       </div>
-    </main>
+
+      {/* Main content: QR Scanner (left) + Recent Patients (right) */}
+      <div className="mt-8 flex flex-col lg:flex-row gap-8">
+        <main className="w-full lg:w-2/5 flex flex-col gap-6">
+          <QRScannerCard />
+          <DoctorQuickActions />
+        </main>
+
+        <aside className="w-full lg:w-3/5">
+          <RecentPatientsTable />
+        </aside>
+      </div>
+    </div>
   );
 }

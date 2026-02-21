@@ -11,11 +11,11 @@ export const ROUTES = {
   HOME: "/",
   DASHBOARD: "/dashboard",
   DOCTOR: "/doctor",
+  DOCTOR_PATIENT: "/doctor/patient", // + /[id]
   LOGIN: "/login",
-  REGISTER: "/register",
+  SIGNUP: "/signup",
   PROFILE: "/profile",
   MEDI_REMINDER: "/medi-reminder",
-  MEDICINE: "/medicine",
   MENTAL_HEALTH: "/mental-health",
   REPORTS: "/reports",
   UPLOAD: "/upload",
@@ -50,27 +50,43 @@ export const HEALTH_THRESHOLDS = {
 } as const;
 
 /* ─── Navigation ────────────────────────────────────────────────────── */
-export const NAV_ITEMS = [
-  { label: "Home", href: ROUTES.HOME, icon: "Home" },
+
+// User nav: user-specific pages
+const USER_NAV_ITEMS = [
   { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "LayoutDashboard" },
   { label: "Medi Reminder", href: ROUTES.MEDI_REMINDER, icon: "Pill" },
-  { label: "Doctor", href: ROUTES.DOCTOR, icon: "Stethoscope" },
-  { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
   { label: "Reports", href: ROUTES.REPORTS, icon: "FileText" },
+  { label: "Mental Health", href: ROUTES.MENTAL_HEALTH, icon: "Brain" },
+  { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
+  { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
 ] as const;
 
-export const NAV_ACCESS: Record<string, AppRole[]> = {
+// Doctor nav: doctor-specific pages
+const DOCTOR_NAV_ITEMS = [
+  { label: "Dashboard", href: ROUTES.DOCTOR, icon: "LayoutDashboard" },
+  { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
+] as const;
+
+// Route → allowed roles (used for guards)
+export const ROUTE_ACCESS: Record<string, AppRole[]> = {
   [ROUTES.HOME]: ["user", "doctor"],
-  [ROUTES.DASHBOARD]: ["user", "doctor"],
+  [ROUTES.DASHBOARD]: ["user"],
   [ROUTES.MEDI_REMINDER]: ["user"],
+  [ROUTES.REPORTS]: ["user"],
+  [ROUTES.MENTAL_HEALTH]: ["user"],
+  [ROUTES.UPLOAD]: ["user"],
+  [ROUTES.CHAT]: ["user"],
   [ROUTES.DOCTOR]: ["doctor"],
+  [ROUTES.DOCTOR_PATIENT]: ["doctor"],
   [ROUTES.PROFILE]: ["user", "doctor"],
-  [ROUTES.REPORTS]: ["user", "doctor"],
 };
 
 export function getNavItemsByRole(role: AppRole) {
-  return NAV_ITEMS.filter((item) => {
-    const allowedRoles = NAV_ACCESS[item.href] ?? ["user", "doctor"];
-    return allowedRoles.includes(role);
-  });
+  if (role === "doctor") return [...DOCTOR_NAV_ITEMS];
+  return [...USER_NAV_ITEMS];
+}
+
+/** Get the default "home" route for an authenticated role */
+export function getHomeRouteForRole(role: AppRole) {
+  return role === "doctor" ? ROUTES.DOCTOR : ROUTES.DASHBOARD;
 }

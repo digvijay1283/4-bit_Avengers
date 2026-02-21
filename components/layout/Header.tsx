@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { APP_NAME, getNavItemsByRole, ROUTES } from "@/constants";
+import { APP_NAME, getNavItemsByRole, getHomeRouteForRole, ROUTES } from "@/constants";
 import { usePathname } from "next/navigation";
 import { Leaf } from "lucide-react";
 import { useMemo } from "react";
@@ -13,14 +13,22 @@ export default function Header() {
   const role = user?.role ?? "user";
 
   const navItems = useMemo(() => getNavItemsByRole(role), [role]);
+  const homeRoute = useMemo(() => getHomeRouteForRole(role), [role]);
+
+  function isActive(href: string) {
+    if (href === pathname) return true;
+    // Nested routes: /doctor/patient/xxx should match /doctor
+    if (href !== "/" && pathname.startsWith(href + "/")) return true;
+    return false;
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-[#122018]/80">
+    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href={ROUTES.HOME} className="flex items-center gap-2">
+        <Link href={homeRoute} className="flex items-center gap-2">
           <Leaf className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold tracking-tight text-slate-800 dark:text-white hidden sm:block">
+          <span className="text-xl font-bold tracking-tight text-slate-800 hidden sm:block">
             {APP_NAME}
           </span>
         </Link>
@@ -32,7 +40,7 @@ export default function Header() {
               key={item.href}
               href={item.href}
               className={
-                pathname === item.href
+                isActive(item.href)
                   ? "text-primary font-bold text-sm"
                   : "text-slate-600 hover:text-primary font-semibold text-sm transition-colors"
               }
