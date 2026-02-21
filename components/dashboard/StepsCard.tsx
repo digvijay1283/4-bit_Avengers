@@ -1,6 +1,10 @@
 import Card from "@/components/ui/Card";
 
-export default function StepsCard() {
+interface StepsCardProps {
+  value?: number | null;
+}
+
+export default function StepsCard({ value = null }: StepsCardProps) {
   return (
     <Card className="p-5">
       <div className="flex justify-between items-start mb-2">
@@ -11,16 +15,11 @@ export default function StepsCard() {
       </div>
       <div className="mt-2">
         <span className="text-3xl font-bold text-slate-900 dark:text-white">
-          8,432
+          {value === null ? "-" : value.toLocaleString()}
         </span>
         <span className="text-sm text-slate-500 ml-1">steps</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-1 mt-3 dark:bg-gray-700">
-        <div
-          className="bg-orange-400 h-1 rounded-full transition-all duration-500"
-          style={{ width: "84%" }}
-        />
-      </div>
+      <p className="text-xs text-slate-400 mt-2">No live data available</p>
     </Card>
   );
 }

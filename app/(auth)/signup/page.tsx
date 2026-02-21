@@ -24,10 +24,22 @@ function SignupForm() {
     const fullName = String(formData.get("name") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    // Client-side confirm password check
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
 
     // Doctor-specific fields
     const specialization = activeRole === "doctor" ? String(formData.get("specialization") ?? "").trim() : undefined;
     const licenseNumber = activeRole === "doctor" ? String(formData.get("license") ?? "").trim() : undefined;
+
+    // User-specific emergency contact fields
+    const emergencyContactName = activeRole === "user" ? String(formData.get("emergencyContactName") ?? "").trim() : undefined;
+    const emergencyContactPhone = activeRole === "user" ? String(formData.get("emergencyContactPhone") ?? "").trim() : undefined;
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -37,9 +49,12 @@ function SignupForm() {
           fullName,
           email,
           password,
+          confirmPassword,
           role: activeRole,
           ...(specialization && { specialization }),
           ...(licenseNumber && { licenseNumber }),
+          ...(emergencyContactName && { emergencyContactName }),
+          ...(emergencyContactPhone && { emergencyContactPhone }),
         }),
       });
 
@@ -54,7 +69,7 @@ function SignupForm() {
         return;
       }
 
-      const nextPath = payload.user?.role === "doctor" ? "/doctor" : "/dashboard";
+      const nextPath = payload.user?.role === "doctor" ? "/login?role=doctor" : "/login";
       router.push(nextPath);
       router.refresh();
     } catch {
@@ -206,6 +221,63 @@ function SignupForm() {
             required
           />
         </div>
+
+        <div className="space-y-2">
+          <label htmlFor="confirmPassword" className="block text-sm font-semibold text-[#334155]">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+            className={`h-11 w-full rounded-lg border border-[#CBD5E1] px-3 text-sm text-[#0F172A] outline-none transition ${
+              isDoctor
+                ? "focus:border-[#1E40AF] focus:ring-2 focus:ring-blue-100"
+                : "focus:border-[#106534] focus:ring-2 focus:ring-[#D1FAE5]"
+            }`}
+            required
+          />
+        </div>
+
+        {/* Emergency Contact — user only */}
+        {!isDoctor && (
+          <fieldset className="space-y-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+            <legend className="text-sm font-bold text-[#334155] px-1">
+              Emergency Contact Details
+            </legend>
+
+            <div className="space-y-2">
+              <label htmlFor="emergencyContactName" className="block text-sm font-semibold text-[#334155]">
+                Emergency Contact Name
+              </label>
+              <input
+                id="emergencyContactName"
+                name="emergencyContactName"
+                type="text"
+                placeholder="e.g. Jane Doe"
+                className="h-11 w-full rounded-lg border border-[#CBD5E1] px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#106534] focus:ring-2 focus:ring-[#D1FAE5]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="emergencyContactPhone" className="block text-sm font-semibold text-[#334155]">
+                Emergency Contact Number
+              </label>
+              <input
+                id="emergencyContactPhone"
+                name="emergencyContactPhone"
+                type="tel"
+                placeholder="e.g. +1-234-567-8900 or 1234567890"
+                className="h-11 w-full rounded-lg border border-[#CBD5E1] px-3 text-sm text-[#0F172A] outline-none transition focus:border-[#106534] focus:ring-2 focus:ring-[#D1FAE5]"
+              />
+              <p className="text-[11px] text-[#94A3B8]">
+                Enter a valid contact number (with or without country code)
+              </p>
+            </div>
+          </fieldset>
+        )}
 
         <button
           type="submit"

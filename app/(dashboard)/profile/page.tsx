@@ -1,124 +1,178 @@
 "use client";
 
+import { useState, FormEvent, useEffect } from "react";
 import Image from "next/image";
-import { Bell } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Bell, Save, X, Pencil, Loader2 } from "lucide-react";
 import ProfileCard from "@/components/profile/ProfileCard";
 import PersonalInfo from "@/components/profile/PersonalInfo";
 import HealthStatsRow from "@/components/profile/HealthStatsRow";
-import DailyRoutine from "@/components/profile/DailyRoutine";
-import UpcomingAppointments from "@/components/profile/UpcomingAppointments";
-import QuickBook from "@/components/profile/QuickBook";
 import DoctorProfileView from "@/components/profile/DoctorProfileView";
-import type { RoutineItem } from "@/components/profile/DailyRoutine";
-import type { Appointment } from "@/components/profile/UpcomingAppointments";
-import type { TimeSlot } from "@/components/profile/QuickBook";
 import { useSession } from "@/hooks/useSession";
+import {
+  useProfile,
+  getAge,
+  getInitials,
+  formatDate,
+  type UserProfile,
+} from "@/hooks/useProfile";
 
-/* ── Mock Data ──────────────────────────────────────────────── */
-
-const AVATAR_URL =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO";
-
-const personalInfoItems = [
-  { icon: "person", label: "Gender", value: "Male" },
-  { icon: "mail", label: "Email", value: "alex.j@vitalai.com" },
-  { icon: "call", label: "Phone", value: "+1 (555) 012-3456" },
-  { icon: "home", label: "Address", value: "2464 Royal Ln. Mesa" },
-  { icon: "bloodtype", label: "Blood Type", value: "O+" },
-];
-
-const healthStats = [
+/* ── Editable fields for the user edit modal ───────────────────────── */
+const EDITABLE_FIELDS: {
+  key: keyof UserProfile;
+  label: string;
+  type?: string;
+  placeholder?: string;
+}[] = [
+  { key: "fullName", label: "Full Name", placeholder: "John Doe" },
+  { key: "phone", label: "Phone", type: "tel", placeholder: "+1 555-012-3456" },
+  { key: "gender", label: "Gender", placeholder: "Male / Female / Other" },
+  { key: "dateOfBirth", label: "Date of Birth", type: "date" },
+  { key: "address", label: "Address", placeholder: "2464 Royal Ln. Mesa" },
+  { key: "bloodType", label: "Blood Type", placeholder: "O+" },
+  { key: "weight", label: "Weight", placeholder: "75kg" },
+  { key: "height", label: "Height", placeholder: "182cm" },
   {
-    icon: "ecg_heart",
-    iconBg: "",
-    iconColor: "",
-    label: "Health Score",
-    value: 88,
-    suffix: "/100",
-    hero: true,
-    heroBadge: "Excellent",
+    key: "emergencyContactName",
+    label: "Emergency Contact Name",
+    placeholder: "Jane Doe",
   },
   {
-    icon: "medication",
-    iconBg: "bg-orange-100",
-    iconColor: "text-orange-500",
-    label: "Active Meds",
-    value: 3,
-    suffix: "daily",
-  },
-  {
-    icon: "medical_services",
-    iconBg: "bg-blue-100",
-    iconColor: "text-blue-500",
-    label: "Consultations",
-    value: 12,
-    suffix: "total",
+    key: "emergencyContactPhone",
+    label: "Emergency Contact Phone",
+    type: "tel",
+    placeholder: "+1 555-987-6543",
   },
 ];
 
-const routineItems: RoutineItem[] = [
-  {
-    time: "08:00 AM",
-    title: "Morning Vitals Check",
-    description: "Blood Pressure, Heart Rate",
-    status: "done",
-  },
-  {
-    time: "09:30 AM",
-    title: "Medicine: Vitamin D",
-    description: "1 Tablet, after breakfast",
-    status: "pending",
-  },
-  {
-    time: "05:00 PM",
-    title: "Afternoon Walk",
-    description: "Target: 30 minutes",
-    status: "upcoming",
-  },
-];
-
-const appointments: Appointment[] = [
-  {
-    doctorName: "Dr. Sarah J.",
-    specialty: "Cardiologist",
-    avatarUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBY2P47bYfNCnwgAKMVJsQzWG_qL9J_ht8EYQZpehDR38u5_VLEAk83Ssc_vaElU7cC-KL3dFJP4lprAHpTgWKoBQ2rn2InmGPYQP-3MIIuBoVNHyL57RSUFVzsWW8FmuHhRNA3sqsbqER_KaLyKOeZF7beoojCKWEh660mbK5927nPsYo63uvleZ62aplE4PVGQ78eXs7tOJt8UlnHnnMxdYCCWUGV5uGdfkkaubn4I_WF65qCPa72b0c12GDbEjvJkBkXsbsNAWNL",
-    date: "Oct 24",
-    time: "09:00 AM",
-    highlighted: true,
-  },
-  {
-    doctorName: "Dr. Mark Chen",
-    specialty: "Neurologist",
-    avatarUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAXULu1dDQAkx9YP9E7VZUtu7h1hAVYTAs3nE5gefv60sxWPfBaLeDenaqMWgtcQW04Yqca6xiUPhTSo0rOtVPn98DCq3wjVjZfVypcex-Pw4u72WEz2kyG--odTQpTpt0ijD5LimywUxTbwD9rsDauuUjoqZhiSO6IURoSc0UJs1EIWW1AczBUC7LYkvvzCph_G3zXiyiJUwrvh6McQT99iMszzkvFVn1zeI8Ctxqt7lLuxoCLxDT_A5o7oX4dWx3ebuOTzl5VvpU_",
-    date: "Oct 28",
-    time: "02:30 PM",
-    highlighted: false,
-  },
-];
-
-const timeSlots: TimeSlot[] = [
-  { time: "09:00 AM", available: false },
-  { time: "09:30 AM", available: false },
-  { time: "10:00 AM", available: true, highlighted: true },
-  { time: "10:30 AM", available: true, highlighted: true },
-  { time: "11:00 AM", available: true },
-  { time: "11:30 AM", available: true },
-];
-
-/* ── Page Component ─────────────────────────────────────────── */
-
+/* ── Page Component ─────────────────────────────────────────────────── */
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
   const { user } = useSession();
+  const { profile, status, updateProfile, refresh } = useProfile();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState(false);
   const role = user?.role ?? "user";
+
+  useEffect(() => {
+    if (searchParams.get("edit") === "1") {
+      setEditing(true);
+    }
+  }, [searchParams]);
 
   // Doctor gets a doctor-specific profile view
   if (role === "doctor") {
     return <DoctorProfileView />;
   }
 
-  // User profile
+  // Loading skeleton
+  if (status === "loading" || !profile) {
+    return (
+      <main className="flex-1 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-slate-500">Loading profile…</p>
+        </div>
+      </main>
+    );
+  }
+
+  const displayName = profile.fullName || profile.email.split("@")[0];
+  const initials = getInitials(displayName);
+  const age = getAge(profile.dateOfBirth);
+  const ageDisplay = age === null ? "-" : String(age);
+  const memberSince = formatDate(profile.createdAt);
+
+  /* ── Build info items from real data ──────────────────────────── */
+  const personalInfoItems = [
+    {
+      icon: "person",
+      label: "Gender",
+      value: profile.gender || "-",
+    },
+    { icon: "mail", label: "Email", value: profile.email },
+    {
+      icon: "call",
+      label: "Phone",
+      value: profile.phone || "-",
+    },
+    {
+      icon: "home",
+      label: "Address",
+      value: profile.address || "-",
+    },
+    {
+      icon: "bloodtype",
+      label: "Blood Type",
+      value: profile.bloodType || "-",
+    },
+    {
+      icon: "emergency",
+      label: "Emergency Contact",
+      value: profile.emergencyContactName
+        ? `${profile.emergencyContactName} (${profile.emergencyContactPhone || "—"})`
+        : "-",
+    },
+  ];
+
+  const healthStats = [
+    {
+      icon: "ecg_heart",
+      iconBg: "",
+      iconColor: "",
+      label: "Health Score",
+      value: 88,
+      suffix: "/100",
+      hero: true,
+      heroBadge: "Excellent",
+    },
+    {
+      icon: "medication",
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-500",
+      label: "Active Meds",
+      value: 3,
+      suffix: "daily",
+    },
+    {
+      icon: "medical_services",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-500",
+      label: "Consultations",
+      value: 12,
+      suffix: "total",
+    },
+  ];
+
+  /* ── Save handler ─────────────────────────────────────────────── */
+  async function handleSave(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveMsg(null);
+    setSaveError(false);
+
+    const fd = new FormData(e.currentTarget);
+    const updates: Record<string, string | null> = {};
+    for (const { key } of EDITABLE_FIELDS) {
+      const val = fd.get(key);
+      if (val !== null) updates[key] = String(val).trim() || null;
+    }
+
+    const result = await updateProfile(updates as Partial<UserProfile>);
+    if (result.ok) {
+      setSaveMsg("Profile updated!");
+      setEditing(false);
+      await refresh();
+    } else {
+      setSaveMsg(result.message);
+      setSaveError(true);
+    }
+    setSaving(false);
+    setTimeout(() => setSaveMsg(null), 3000);
+  }
+
   return (
     <main className="flex-1 flex flex-col min-h-0">
       {/* Page Header */}
@@ -129,17 +183,14 @@ export default function ProfilePage() {
           </h1>
 
           <div className="flex items-center gap-4">
-            {/* Search (desktop) */}
-            <div className="relative hidden sm:block">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-lg">
-                search
-              </span>
-              <input
-                className="pl-10 pr-4 py-2 rounded-full bg-white border-none text-sm w-64 focus:ring-2 focus:ring-primary/20 shadow-sm"
-                placeholder="Search..."
-                type="text"
-              />
-            </div>
+            {/* Edit button */}
+            <button
+              onClick={() => setEditing(true)}
+              className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-primary/90 transition shadow-sm"
+            >
+              <Pencil className="h-4 w-4" />
+              <span className="hidden sm:inline">Edit Profile</span>
+            </button>
 
             {/* Notifications */}
             <button className="bg-white p-2 rounded-full text-slate-500 hover:text-primary shadow-sm relative">
@@ -149,50 +200,209 @@ export default function ProfilePage() {
 
             {/* User chip */}
             <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded-full shadow-sm pr-4">
-              <Image
-                alt="User"
-                src={AVATAR_URL}
-                width={32}
-                height={32}
-                className="w-8 h-8 rounded-full object-cover"
-              />
+              {profile.avatarUrl ? (
+                <Image
+                  alt={displayName}
+                  src={profile.avatarUrl}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
+                  {initials}
+                </div>
+              )}
               <span className="text-sm font-bold text-slate-700 hidden sm:block">
-                Alex J.
+                {displayName}
               </span>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Toast */}
+      {saveMsg && (
+        <div
+          className={`fixed top-6 right-6 z-50 bg-white rounded-xl px-5 py-3 shadow-lg text-sm font-medium border ${
+            saveError
+              ? "border-red-200 text-red-700"
+              : "border-emerald-200 text-emerald-700"
+          }`}
+        >
+          {saveMsg}
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#F8FAFC]">
+      <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-background-light">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
-          {/* ── Left Column (3 cols) ────────────────────────── */}
+          {/* ── Left Column (3 cols) ───────────────────────── */}
           <div className="lg:col-span-3 flex flex-col gap-6">
             <ProfileCard
-              name="Alex Johnson"
-              avatarUrl={AVATAR_URL}
+              name={displayName}
+              avatarUrl={profile.avatarUrl || ""}
               isPremium
-              weight="75kg"
-              height="182cm"
-              age={28}
+              weight={profile.weight || "-"}
+              height={profile.height || "-"}
+              age={ageDisplay}
             />
-            <PersonalInfo items={personalInfoItems} />
+            <PersonalInfo items={personalInfoItems} onEdit={() => setEditing(true)} />
           </div>
 
-          {/* ── Center Column (6 cols) ──────────────────────── */}
+          {/* ── Center Column (6 cols) ─────────────────────── */}
           <div className="lg:col-span-6 flex flex-col gap-6">
             <HealthStatsRow stats={healthStats} />
-            <DailyRoutine items={routineItems} />
+
+            {/* Member info card */}
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6">
+              <h3 className="font-bold text-lg text-slate-900 mb-4">
+                Account Details
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-500 text-xs font-medium">
+                    Member Since
+                  </p>
+                  <p className="font-semibold text-slate-900">{memberSince}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs font-medium">Status</p>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full mt-0.5">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    {profile.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs font-medium">User ID</p>
+                  <p className="font-mono text-xs text-slate-600 truncate">
+                    {profile.userId}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-500 text-xs font-medium">
+                    Last Updated
+                  </p>
+                  <p className="font-semibold text-slate-900">
+                    {formatDate(profile.updatedAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* ── Right Column (3 cols) ───────────────────────── */}
+          {/* ── Right Column (3 cols) ──────────────────────── */}
           <div className="lg:col-span-3 flex flex-col gap-6">
-            <UpcomingAppointments appointments={appointments} />
-            <QuickBook doctorName="Dr. Sarah J." slots={timeSlots} />
+            {/* Quick Links */}
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-6">
+              <h3 className="font-bold text-lg text-slate-900 mb-4">
+                Quick Actions
+              </h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    icon: "upload_file",
+                    label: "Upload Report",
+                    href: "/upload",
+                  },
+                  {
+                    icon: "medication",
+                    label: "Medi Reminder",
+                    href: "/medi-reminder",
+                  },
+                  {
+                    icon: "psychology",
+                    label: "Mental Health",
+                    href: "/mental-health",
+                  },
+                ].map((action) => (
+                  <a
+                    key={action.label}
+                    href={action.href}
+                    className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 hover:bg-soft-mint/20 transition group"
+                  >
+                    <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
+                      {action.icon}
+                    </span>
+                    <span className="text-sm font-medium text-slate-700">
+                      {action.label}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ── Edit Profile Modal ───────────────────────────────────── */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleSave}
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 sticky top-0 bg-white rounded-t-2xl z-10">
+              <h2 className="text-lg font-bold text-slate-900">
+                Edit Profile
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Fields */}
+            <div className="px-6 py-5 space-y-4">
+              {EDITABLE_FIELDS.map((field) => (
+                <div key={field.key}>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                    {field.label}
+                  </label>
+                  <input
+                    name={field.key}
+                    type={field.type ?? "text"}
+                    defaultValue={
+                      field.type === "date" && profile.dateOfBirth
+                        ? profile.dateOfBirth.split("T")[0]
+                        : (profile[field.key] as string) ?? ""
+                    }
+                    placeholder={field.placeholder}
+                    className="w-full rounded-xl border border-gray-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Modal footer */}
+            <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 sticky bottom-0 bg-white rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition disabled:opacity-60"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </main>
   );
 }

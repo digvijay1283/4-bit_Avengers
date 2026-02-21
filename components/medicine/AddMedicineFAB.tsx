@@ -39,9 +39,12 @@ export default function AddMedicineFAB({ onRefresh }: AddMedicineFABProps) {
         body: formData,
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        error?: string;
+        count?: number;
+      };
 
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) throw new Error(data.error ?? "OCR extraction failed");
 
       toast.success(`Detected ${data.count} medicine${data.count > 1 ? "s" : ""}! Review below.`, {
         id: "ocr-toast",
@@ -54,7 +57,11 @@ export default function AddMedicineFAB({ onRefresh }: AddMedicineFABProps) {
       });
     } catch (error) {
       console.error(error);
-      toast.error("Could not read prescription. Please try a clearer photo.", {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not read prescription. Please try a clearer photo.";
+      toast.error(message, {
         id: "ocr-toast",
       });
     } finally {

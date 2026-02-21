@@ -26,11 +26,17 @@ export async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      dbName: MONGODB_DB_NAME,
-      bufferCommands: false,
-      autoIndex: true,
-    });
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        dbName: MONGODB_DB_NAME,
+        bufferCommands: false,
+        autoIndex: true,
+        serverSelectionTimeoutMS: 10000,
+      })
+      .catch((error) => {
+        cached.promise = null;
+        throw error;
+      });
   }
 
   cached.conn = await cached.promise;

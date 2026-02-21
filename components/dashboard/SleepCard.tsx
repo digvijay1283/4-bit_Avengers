@@ -1,6 +1,10 @@
 import Card from "@/components/ui/Card";
 
-export default function SleepCard() {
+interface SleepCardProps {
+  value?: string | null;
+}
+
+export default function SleepCard({ value = null }: SleepCardProps) {
   return (
     <Card className="p-5">
       <div className="flex justify-between items-start mb-2">
@@ -11,11 +15,11 @@ export default function SleepCard() {
       </div>
       <div className="mt-2">
         <span className="text-3xl font-bold text-slate-900 dark:text-white">
-          7h 42m
+          {value ?? "-"}
         </span>
       </div>
-      <p className="text-xs text-green-600 mt-1 font-medium">
-        ↑ 12% vs last week
+      <p className="text-xs text-slate-500 mt-1 font-medium">
+        No live data available
       </p>
     </Card>
   );

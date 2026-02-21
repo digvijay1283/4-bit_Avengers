@@ -1,11 +1,16 @@
+"use client";
+
 import { FileText } from "lucide-react";
 import RiskScoreBadge from "./RiskScoreBadge";
 import HeartRateCard from "./HeartRateCard";
 import BloodPressureCard from "./BloodPressureCard";
 import SleepCard from "./SleepCard";
 import StepsCard from "./StepsCard";
+import { useLiveHealth } from "@/hooks/useLiveHealth";
 
 export default function LiveMonitoring() {
+  const { data } = useLiveHealth();
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -25,14 +30,14 @@ export default function LiveMonitoring() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Large Circular Progress (AI Risk Score) */}
-        <RiskScoreBadge score={88} />
+        <RiskScoreBadge score={data.riskScore} />
 
         {/* Vitals Grid */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <HeartRateCard />
-          <BloodPressureCard />
-          <SleepCard />
-          <StepsCard />
+          <HeartRateCard value={data.heartRate} />
+          <BloodPressureCard value={data.bloodPressure} />
+          <SleepCard value={data.sleep} />
+          <StepsCard value={data.steps} />
         </div>
       </div>
     </div>

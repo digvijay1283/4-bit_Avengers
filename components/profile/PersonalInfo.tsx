@@ -6,16 +6,22 @@ interface InfoItem {
 
 interface PersonalInfoProps {
   items: InfoItem[];
+  onEdit?: () => void;
 }
 
-export default function PersonalInfo({ items }: PersonalInfoProps) {
+export default function PersonalInfo({ items, onEdit }: PersonalInfoProps) {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex-1">
       <div className="flex justify-between items-center mb-6">
         <h3 className="font-bold text-lg text-slate-900">
           Personal Information
         </h3>
-        <button className="text-slate-400 hover:text-primary transition-colors">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-slate-400 hover:text-primary transition-colors"
+          aria-label="Edit personal information"
+        >
           <span className="material-symbols-outlined text-sm">edit</span>
         </button>
       </div>

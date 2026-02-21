@@ -67,7 +67,6 @@ const USER_NAV_ITEMS = [
 // Doctor nav: doctor-specific pages
 const DOCTOR_NAV_ITEMS = [
   { label: "Dashboard", href: ROUTES.DOCTOR, icon: "LayoutDashboard" },
-  { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
 ] as const;
 
