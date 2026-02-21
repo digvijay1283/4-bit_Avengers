@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function HeroSection() {
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden min-h-[300px] flex items-center shadow-lg group">
+    <div className="relative w-full rounded-2xl overflow-hidden min-h-75 flex items-center shadow-lg group">
       {/* Background Image */}
       <Image
         src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGQd4jDSuSro3i2WFfIqEQtTOIMCSbE9pbUgH8JGZZFD8QVWotVOvia7sp5UctZWC3FZrDREpKnyYeFt4hHQzpBudKCh1BeEP__YHdjq4lYZ0vLEiR6S4NM53JJhqYV5FxOGKksOgxv_iCpA2r8TfEOK2BIJfvLkJasmgGT2aHU2QgVDyOFeBUDmKmftvCpccCbbsFv24efMGfz6j-iiiPWuDqoNE-Bq7--jVh1EO9wG4AhQohMAScLY6RgcQpRFYRmwl6VcW4n1-n"
@@ -15,7 +15,7 @@ export default function HeroSection() {
       />
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40" />
+      <div className="absolute inset-0 bg-linear-to-r from-primary/90 to-primary/40" />
 
       <div className="relative z-10 p-6 md:p-10 w-full flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="max-w-lg text-white">
@@ -26,13 +26,10 @@ export default function HeroSection() {
             Your AI-driven preventive health companion is ready to analyze your
             vitals.
           </p>
-          <button className="bg-white text-primary px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#D1FAE5] transition-colors">
-            Start Analysis
-          </button>
         </div>
 
         {/* Floating Glass Card */}
-        <div className="glass-card p-4 rounded-xl w-full max-w-[200px] shadow-xl">
+        <div className="glass-card p-4 rounded-xl w-full max-w-50 shadow-xl">
           <div className="flex items-center justify-between mb-2">
             <span className="material-symbols-outlined text-white">
               analytics

@@ -1,6 +1,12 @@
 import Card from "@/components/ui/Card";
 
-export default function BloodPressureCard() {
+interface BloodPressureCardProps {
+  value?: string | null;
+}
+
+export default function BloodPressureCard({
+  value = null,
+}: BloodPressureCardProps) {
   return (
     <Card className="p-5">
       <div className="flex justify-between items-start mb-2">
@@ -11,7 +17,7 @@ export default function BloodPressureCard() {
       </div>
       <div className="mt-2">
         <span className="text-3xl font-bold text-slate-900 dark:text-white">
-          -
+          {value ?? "-"}
         </span>
         <span className="text-sm text-slate-500 ml-1">mmHg</span>
       </div>

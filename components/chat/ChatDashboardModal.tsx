@@ -19,8 +19,11 @@ export default function ChatDashboardModal() {
         if (!mounted) return;
 
         if (res.ok) {
-          const data = (await res.json()) as { userId?: string };
-          setUserId(data.userId ?? "guest");
+          const data = (await res.json()) as {
+            ok: boolean;
+            user?: { userId?: string; fullName?: string };
+          };
+          setUserId(data.user?.userId ?? "guest");
           return;
         }
 

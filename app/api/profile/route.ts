@@ -74,81 +74,112 @@ const ALLOWED_FIELDS = [
 type AllowedField = (typeof ALLOWED_FIELDS)[number];
 
 export async function PATCH(request: NextRequest) {
-  const auth = await getAuthUser();
-  if (!auth) {
-    return NextResponse.json(
-      { ok: false, message: "Unauthorized" },
-      { status: 401 },
-    );
-  }
-
-  let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json(
-      { ok: false, message: "Invalid JSON body" },
-      { status: 400 },
-    );
-  }
-
-  // Pick only allowed keys
-  const updates: Partial<Record<AllowedField, unknown>> = {};
-  for (const key of ALLOWED_FIELDS) {
-    if (key in body) {
-      const val = body[key];
-      // Trim strings, allow null to unset
-      updates[key] =
-        typeof val === "string" ? val.trim() || null : val ?? null;
+    const auth = await getAuthUser();
+    if (!auth) {
+      return NextResponse.json(
+        { ok: false, message: "Unauthorized" },
+        { status: 401 },
+      );
     }
-  }
 
-  if (Object.keys(updates).length === 0) {
+    let body: Record<string, unknown>;
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      return NextResponse.json(
+        { ok: false, message: "Invalid JSON body" },
+        { status: 400 },
+      );
+    }
+
+    const updates: Partial<Record<AllowedField, unknown>> = {};
+    for (const key of ALLOWED_FIELDS) {
+      if (key in body) {
+        const val = body[key];
+        if (key === "dateOfBirth") {
+          if (val === null || val === "") {
+            updates[key] = null;
+          } else if (typeof val === "string") {
+            const parsed = new Date(val);
+            if (Number.isNaN(parsed.getTime())) {
+              return NextResponse.json(
+                { ok: false, message: "Invalid date of birth" },
+                { status: 400 },
+              );
+            }
+            updates[key] = parsed;
+          } else {
+            updates[key] = null;
+          }
+        } else {
+          updates[key] =
+            typeof val === "string" ? val.trim() || null : val ?? null;
+        }
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { ok: false, message: "No valid fields to update" },
+        { status: 400 },
+      );
+    }
+
+    await dbConnect();
+    const updated = await User.findOneAndUpdate(
+      { userId: auth.userId },
+      { $set: updates },
+      { new: true, runValidators: true },
+    ).lean();
+
+    if (!updated) {
+      return NextResponse.json(
+        { ok: false, message: "User not found" },
+        { status: 404 },
+      );
+    }
+
+    const role: "user" | "doctor" =
+      updated.role === "admin" ? "doctor" : (updated.role as "user" | "doctor");
+
+    return NextResponse.json({
+      ok: true,
+      profile: {
+        userId: updated.userId,
+        email: updated.email,
+        fullName: updated.fullName,
+        avatarUrl: updated.avatarUrl ?? null,
+        phone: updated.phone ?? null,
+        gender: updated.gender ?? null,
+        dateOfBirth: updated.dateOfBirth ?? null,
+        address: updated.address ?? null,
+        bloodType: updated.bloodType ?? null,
+        weight: updated.weight ?? null,
+        height: updated.height ?? null,
+        emergencyContactName: updated.emergencyContactName ?? null,
+        emergencyContactPhone: updated.emergencyContactPhone ?? null,
+        specialization: updated.specialization ?? null,
+        licenseNumber: updated.licenseNumber ?? null,
+        role,
+        status: updated.status,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (/E11000 duplicate key/i.test(message)) {
+      return NextResponse.json(
+        { ok: false, message: "Phone number already exists for another user" },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json(
-      { ok: false, message: "No valid fields to update" },
-      { status: 400 },
+      { ok: false, message: "Failed to update profile", error: message },
+      { status: 500 },
     );
   }
-
-  await dbConnect();
-  const updated = await User.findOneAndUpdate(
-    { userId: auth.userId },
-    { $set: updates },
-    { new: true, runValidators: true },
-  ).lean();
-
-  if (!updated) {
-    return NextResponse.json(
-      { ok: false, message: "User not found" },
-      { status: 404 },
-    );
-  }
-
-  const role: "user" | "doctor" =
-    updated.role === "admin" ? "doctor" : (updated.role as "user" | "doctor");
-
-  return NextResponse.json({
-    ok: true,
-    profile: {
-      userId: updated.userId,
-      email: updated.email,
-      fullName: updated.fullName,
-      avatarUrl: updated.avatarUrl ?? null,
-      phone: updated.phone ?? null,
-      gender: updated.gender ?? null,
-      dateOfBirth: updated.dateOfBirth ?? null,
-      address: updated.address ?? null,
-      bloodType: updated.bloodType ?? null,
-      weight: updated.weight ?? null,
-      height: updated.height ?? null,
-      emergencyContactName: updated.emergencyContactName ?? null,
-      emergencyContactPhone: updated.emergencyContactPhone ?? null,
-      specialization: updated.specialization ?? null,
-      licenseNumber: updated.licenseNumber ?? null,
-      role,
-      status: updated.status,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    },
-  });
 }
