@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  /* ─── Tesseract.js — keep worker out of Webpack bundle ───────────── */
+  serverExternalPackages: ["tesseract.js"],
 };
 
 export default nextConfig;

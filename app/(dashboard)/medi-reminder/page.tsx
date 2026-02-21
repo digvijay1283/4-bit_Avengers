@@ -8,6 +8,7 @@ import MedicalTestCard from "@/components/medicine/MedicalTestCard";
 import AudioAlertToggle from "@/components/medicine/AudioAlertToggle";
 import DailyProgressWidget from "@/components/medicine/DailyProgressWidget";
 import LowStockAlert from "@/components/medicine/LowStockAlert";
+import AddMedicineFAB from "@/components/medicine/AddMedicineFAB";
 import type { Medicine, MedicalTest } from "@/types/medicine";
 import Image from "next/image";
 import { Bell } from "lucide-react";
@@ -170,6 +171,9 @@ export default function MediReminderPage() {
           </aside>
         </div>
       </div>
+
+      {/* FAB — scan prescription via OCR */}
+      <AddMedicineFAB userId="demo-user" />
     </main>
   );
 }
