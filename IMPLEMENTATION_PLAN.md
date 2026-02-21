@@ -1,7 +1,7 @@
 # VitalAI — Implementation Plan
 
 > **Preventive Health Companion** | Hackathon MVP  
-> **Stack:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · Firebase · Google Fit API  
+> **Stack:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · MongoDB (Mongoose) · Google Fit API  
 > **Repo:** [4-bit_Avengers](https://github.com/digvijay1283/4-bit_Avengers)
 
 ---
@@ -21,10 +21,29 @@
 11. [Phase 7 — Smart Alerts Module](#phase-7--smart-alerts-module)
 12. [Phase 8 — Smart Reports](#phase-8--smart-reports)
 13. [Phase 9 — Upload Past Medical Reports](#phase-9--upload-past-medical-reports)
-14. [Data Models (Firebase Collections)](#data-models-firebase-collections)
+14. [Data Models (MongoDB Collections)](#data-models-mongodb-collections)
 15. [API Routes Summary](#api-routes-summary)
 16. [Environment Variables](#environment-variables)
 17. [Implementation Checklist](#implementation-checklist)
+
+## Database Decision Update (MongoDB)
+
+This project now uses **MongoDB Atlas + Mongoose** as the primary database.
+
+- Source of truth connection is `MONGODB_URI` in `.env.local`
+- Database name is controlled with `MONGODB_DB_NAME`
+- Current user model lives in `models/User.ts`
+- Connection utility lives in `lib/mongodb.ts`
+- Index bootstrap endpoint: `GET /api/health/db`
+
+### User Index Strategy (Implemented)
+
+- `uq_users_email` → unique index on `email`
+- `uq_users_phone_sparse` → unique sparse index on `phone`
+- `idx_users_role_status` → compound index on `role + status`
+- `idx_users_createdAt_desc` → descending index on `createdAt`
+
+These indexes are defined at schema level in `models/User.ts` and synced via `User.ensureIndexes()`.
 
 ---
 
@@ -43,18 +62,18 @@
 └──────┼─────────────┼──────────────┼──────────────┼───────┘
        │             │              │              │
   ┌────▼────┐  ┌─────▼─────┐  ┌────▼────┐  ┌─────▼─────┐
-  │Firebase │  │Google Fit │  │  OCR    │  │  AI/LLM   │
-  │Auth +   │  │   API     │  │(Tesser- │  │(Gemini /  │
-  │Firestore│  │           │  │ act.js) │  │ OpenAI)   │
+  │MongoDB  │  │Google Fit │  │  OCR    │  │  AI/LLM   │
+  │(Mongoose│  │   API     │  │(Tesser- │  │(Gemini /  │
+  │ + Atlas)│  │           │  │ act.js) │  │ OpenAI)   │
   └─────────┘  └───────────┘  └─────────┘  └───────────┘
 ```
 
 **Key design decisions:**
 
 - **Next.js App Router** — file-based routing, server components by default
-- **Firebase** — Auth (Google OAuth), Firestore (NoSQL data), Storage (file uploads)
+- **MongoDB Atlas + Mongoose** — primary database with schema-level indexes and validation
 - **Server-side AI calls** — all LLM/OCR calls happen in API routes (secrets never leak to client)
-- **Google Fit REST API** — OAuth 2.0 token flow, data fetched server-side and cached in Firestore
+- **Google Fit REST API** — OAuth 2.0 token flow, data fetched server-side and cached in MongoDB
 
 ---
 
