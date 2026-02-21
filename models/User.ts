@@ -9,7 +9,7 @@ export interface IUser extends Document {
   passwordHash: string;          // always stored; select: false keeps it hidden
   avatarUrl?: string;
   phone?: string;
-  role: "user" | "admin";
+  role: "user" | "doctor" | "admin";
   status: "active" | "inactive";
   lastLoginAt?: Date;
   createdAt: Date;
@@ -34,7 +34,7 @@ const userSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true, select: false },
     avatarUrl: { type: String, trim: true },
     phone: { type: String, trim: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "doctor", "admin"], default: "user" },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     lastLoginAt: { type: Date },
   },
@@ -54,7 +54,7 @@ userSchema.index({ email: 1 }, { unique: true, name: "uq_users_email" });
 // 2. Unique phone — sparse so null/undefined rows don't conflict
 userSchema.index({ phone: 1 }, { unique: true, sparse: true, name: "uq_users_phone_sparse" });
 
-// 3. Compound role + status — for admin dashboards filtering active/inactive users
+// 3. Compound role + status — for role-based dashboards filtering active/inactive users
 userSchema.index({ role: 1, status: 1 }, { name: "idx_users_role_status" });
 
 // 4. createdAt descending — for chronological user listings / pagination

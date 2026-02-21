@@ -8,7 +8,9 @@ import {
   FileText,
   User,
   Pill,
+  Stethoscope,
 } from "lucide-react";
+import { useSession } from "@/hooks/useSession";
 
 const bottomNavItems = [
   { label: "Home", href: "/", icon: Home },
@@ -19,6 +21,11 @@ const bottomNavItems = [
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const { user } = useSession();
+  const role = user?.role ?? "user";
+
+  const centerLink = role === "doctor" ? "/doctor" : "/medi-reminder";
+  const CenterIcon = role === "doctor" ? Stethoscope : Pill;
 
   return (
     <>
@@ -44,12 +51,12 @@ export default function MobileNav() {
             );
           })}
 
-          {/* Center FAB — Medi Reminder */}
+          {/* Center FAB — role-aware */}
           <Link
-            href="/medi-reminder"
+            href={centerLink}
             className="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white"
           >
-            <Pill className="h-5 w-5 text-white" />
+            <CenterIcon className="h-5 w-5 text-white" />
           </Link>
 
           {bottomNavItems.slice(2).map((item) => {

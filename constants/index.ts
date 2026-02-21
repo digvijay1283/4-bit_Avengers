@@ -10,6 +10,7 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000
 export const ROUTES = {
   HOME: "/",
   DASHBOARD: "/dashboard",
+  DOCTOR: "/doctor",
   LOGIN: "/login",
   REGISTER: "/register",
   PROFILE: "/profile",
@@ -20,6 +21,8 @@ export const ROUTES = {
   UPLOAD: "/upload",
   CHAT: "/chat",
 } as const;
+
+export type AppRole = "user" | "doctor";
 
 /* ─── Pagination ────────────────────────────────────────────────────── */
 export const DEFAULT_PAGE_SIZE = 20;
@@ -51,6 +54,23 @@ export const NAV_ITEMS = [
   { label: "Home", href: ROUTES.HOME, icon: "Home" },
   { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "LayoutDashboard" },
   { label: "Medi Reminder", href: ROUTES.MEDI_REMINDER, icon: "Pill" },
+  { label: "Doctor", href: ROUTES.DOCTOR, icon: "Stethoscope" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
   { label: "Reports", href: ROUTES.REPORTS, icon: "FileText" },
 ] as const;
+
+export const NAV_ACCESS: Record<string, AppRole[]> = {
+  [ROUTES.HOME]: ["user", "doctor"],
+  [ROUTES.DASHBOARD]: ["user", "doctor"],
+  [ROUTES.MEDI_REMINDER]: ["user"],
+  [ROUTES.DOCTOR]: ["doctor"],
+  [ROUTES.PROFILE]: ["user", "doctor"],
+  [ROUTES.REPORTS]: ["user", "doctor"],
+};
+
+export function getNavItemsByRole(role: AppRole) {
+  return NAV_ITEMS.filter((item) => {
+    const allowedRoles = NAV_ACCESS[item.href] ?? ["user", "doctor"];
+    return allowedRoles.includes(role);
+  });
+}
