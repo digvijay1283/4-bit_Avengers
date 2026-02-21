@@ -77,107 +77,86 @@ These indexes are defined at schema level in `models/User.ts` and synced via `Us
 
 ---
 
-## 2. Directory Structure (Final)
+## 2. Directory Structure (Actual)
+
+> ✅ = exists · ⬜ = planned
 
 ```
 D:\Cavista\
 │
 ├── app/
-│   ├── globals.css
-│   ├── layout.tsx                    ← Root layout (font, metadata, providers)
-│   ├── page.tsx                      ← Landing / Home page
+│   ├── globals.css                   ✅ Theme tokens, Tailwind base
+│   ├── layout.tsx                    ✅ Root layout (Manrope font, suppressHydrationWarning)
+│   ├── page.tsx                      ✅ Landing / Home page
 │   │
-│   ├── (auth)/                       ← Auth routes group (no layout nesting)
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
+│   ├── (auth)/                       ✅ Auth route group
+│   │   ├── layout.tsx                ✅ Split-screen branding layout
+│   │   ├── login/page.tsx            ✅ Login form → /api/auth/login
+│   │   └── signup/page.tsx           ✅ Signup form → /api/auth/signup
 │   │
-│   ├── (dashboard)/                  ← Authenticated app shell
-│   │   ├── layout.tsx                ← Sidebar + Header layout
-│   │   ├── dashboard/page.tsx        ← /dashboard → Health overview
-│   │   ├── profile/page.tsx          ← /profile
-│   │   ├── medicine/page.tsx         ← /medicine → Reminders
-│   │   ├── mental-health/page.tsx    ← /mental-health
-│   │   ├── reports/page.tsx          ← /reports
-│   │   ├── upload/page.tsx           ← /upload → Past medical reports
-│   │   └── chat/page.tsx             ← /chat → AI Chatbot
+│   ├── (dashboard)/                  ✅ Authenticated app shell
+│   │   ├── layout.tsx                ✅ Header + MobileNav shell
+│   │   ├── dashboard/page.tsx        ✅ /dashboard → health overview + chat modal
+│   │   ├── medi-reminder/page.tsx    ✅ /medi-reminder → medicine management
+│   │   ├── chat/page.tsx             ✅ /chat → standalone chat page
+│   │   ├── profile/page.tsx          ⬜ /profile
+│   │   ├── mental-health/page.tsx    ⬜ /mental-health
+│   │   ├── reports/page.tsx          ⬜ /reports
+│   │   └── upload/page.tsx           ⬜ /upload → past medical reports
 │   │
-│   └── api/                          ← Server-side API routes
+│   └── api/
 │       ├── auth/
-│       │   └── [...nextauth]/route.ts  (if using NextAuth)
-│       ├── google-fit/
-│       │   └── route.ts              ← Fetch wearable data
-│       ├── ocr/
-│       │   └── route.ts              ← Process prescription images
+│       │   ├── login/route.ts        ✅ POST — verify creds, set JWT cookie
+│       │   ├── signup/route.ts       ✅ POST — create user, set JWT cookie
+│       │   └── me/route.ts           ✅ GET — read JWT, return userId/email/role
+│       ├── health/
+│       │   └── db/route.ts           ✅ GET — MongoDB health-check + index sync
 │       ├── chat/
-│       │   └── route.ts              ← AI chatbot endpoint
-│       ├── reports/
-│       │   └── route.ts              ← Generate PDF reports
-│       └── alerts/
-│           └── route.ts              ← Smart alert logic
+│       │   └── route.ts              ✅ POST — proxy to chatbot webhook
+│       ├── ocr/
+│       │   └── extract/route.ts      ✅ POST — OCR extraction
+│       ├── twilio/
+│       │   └── route.ts              ✅ POST — SMS alert dispatch
+│       ├── google-fit/route.ts       ⬜ Wearable data fetch
+│       ├── reports/route.ts          ⬜ PDF report generation
+│       └── alerts/route.ts           ⬜ Alert evaluation
 │
 ├── components/
-│   ├── ui/                           ← Reusable primitives
-│   │   ├── Button.tsx
-│   │   ├── Card.tsx
-│   │   ├── Input.tsx
-│   │   ├── Modal.tsx
-│   │   ├── Badge.tsx
-│   │   ├── Spinner.tsx
-│   │   └── Chart.tsx                 ← Recharts wrapper
-│   │
-│   ├── layout/
-│   │   ├── Header.tsx
-│   │   ├── Footer.tsx
-│   │   ├── Sidebar.tsx
-│   │   └── MobileNav.tsx
-│   │
-│   ├── dashboard/
-│   │   ├── HeartRateCard.tsx
-│   │   ├── StepsCard.tsx
-│   │   ├── SleepCard.tsx
-│   │   ├── CalorieCard.tsx
-│   │   ├── RiskScoreBadge.tsx
-│   │   └── WeeklyTrendChart.tsx
-│   │
-│   ├── medicine/
-│   │   ├── PrescriptionUpload.tsx
-│   │   ├── MedicineList.tsx
-│   │   ├── ReminderCard.tsx
-│   │   └── AdherenceChart.tsx
-│   │
-│   ├── mental-health/
-│   │   ├── MoodScore.tsx
-│   │   ├── StressIndicator.tsx
-│   │   └── BreathingExercise.tsx
-│   │
-│   ├── chat/
-│   │   ├── ChatWindow.tsx
-│   │   ├── ChatMessage.tsx
-│   │   └── ChatInput.tsx
-│   │
-│   ├── reports/
-│   │   ├── ReportCard.tsx
-│   │   └── ReportViewer.tsx
-│   │
-│   └── profile/
-│       ├── ProfileForm.tsx
-│       └── EmergencyContacts.tsx
+│   ├── ui/                           ✅ Button, Card, Badge, Spinner, ProgressBar
+│   ├── layout/                       ✅ Header, Footer, MobileNav
+│   ├── dashboard/                    ✅ HeartRateCard, StepsCard, SleepCard,
+│   │                                    BloodPressureCard, RiskScoreBadge,
+│   │                                    WeeklyTrendChart, LiveMonitoring,
+│   │                                    HeroSection, MissionSection, SpecialistGrid,
+│   │                                    ProfileSnippet, RemindersWidget, DailyInsight
+│   ├── medicine/                     ✅ MedicineCard, AudioAlertToggle,
+│   │                                    DailyProgressWidget, LowStockAlert,
+│   │                                    MainTabSwitcher, SubTabBar, MedicalTestCard
+│   ├── chat/                         ✅ ChatWindow, ChatMessage, ChatInput,
+│   │                                    ChatDashboardModal
+│   ├── mental-health/                ⬜ MoodScore, StressIndicator, BreathingExercise
+│   ├── reports/                      ⬜ ReportCard, ReportViewer
+│   └── profile/                      ⬜ ProfileForm, EmergencyContacts
+│
+├── models/
+│   └── User.ts                       ✅ Mongoose schema, 5 named indexes, userId (UUID)
 │
 ├── hooks/
-│   ├── index.ts                      ← Generic hooks (existing)
-│   ├── useAuth.ts                    ← Firebase auth state
-│   ├── useGoogleFit.ts              ← Fetch wearable data
-│   ├── useMedicine.ts               ← Medicine CRUD + reminders
-│   └── useChat.ts                   ← Chatbot streaming
+│   ├── index.ts                      ✅
+│   ├── useGoogleFit.ts              ⬜
+│   ├── useMedicine.ts               ⬜
+│   └── useChat.ts                   ⬜
 │
 ├── lib/
-│   ├── utils.ts                      ← cn(), formatDate() (existing)
-│   ├── firebase.ts                   ← Firebase app init
-│   ├── firestore.ts                  ← Firestore helpers (CRUD)
-│   ├── google-fit.ts                 ← Google Fit API client
-│   ├── ocr.ts                        ← OCR processing logic
-│   ├── ai.ts                         ← LLM client (Gemini / OpenAI)
-│   └── pdf.ts                        ← PDF report generation
+│   ├── mongodb.ts                    ✅ Mongoose connection (global cache)
+│   ├── auth.ts                       ✅ hashPassword, comparePassword, signAuthToken, verifyAuthToken
+│   ├── medicalReportParser.ts        ✅ Parse OCR output → structured data
+│   ├── uuid.ts                       ✅ Client-safe randomUUID helper
+│   ├── utils.ts                      ✅ cn(), formatDate()
+│   ├── google-fit.ts                 ⬜ Google Fit API client
+│   ├── ocr.ts                        ⬜ OCR processing logic
+│   ├── ai.ts                         ⬜ LLM client (Gemini / OpenAI)
+│   └── pdf.ts                        ⬜ PDF report generation
 │
 ├── services/
 │   ├── api.ts                        ← Base fetch client (existing)
@@ -208,102 +187,86 @@ D:\Cavista\
 
 ## 3. Tech Stack & Dependencies
 
-### Core (already installed)
+### Installed & Active ✅
 
-| Package | Purpose |
-|---------|---------|
-| `next` | Framework |
-| `react` / `react-dom` | UI |
-| `typescript` | Type safety |
-| `tailwindcss` + `@tailwindcss/postcss` | Styling |
-| `clsx` | Conditional classes |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `next` | 16.1.6 | Framework (App Router + Turbopack) |
+| `react` / `react-dom` | 19.2.4 | UI |
+| `typescript` | 5.9.3 | Type safety (strict mode) |
+| `tailwindcss` + `@tailwindcss/postcss` | 4.2.0 | Styling |
+| `mongoose` | 9.2.1 | MongoDB ODM (Atlas) |
+| `bcryptjs` | 3.0.3 | Password hashing (12 rounds) |
+| `jsonwebtoken` | 9.0.3 | JWT auth (7-day httpOnly cookies) |
+| `lucide-react` | latest | Icons |
+| `recharts` | latest | Dashboard charts |
+| `framer-motion` | latest | Animations |
+| `clsx` | latest | Conditional classes |
+| `geist` | latest | Geist font |
 
-### To Install
+### Still To Install ⬜
 
 | Package | Purpose | Command |
 |---------|---------|---------|
-| `firebase` | Auth + Firestore + Storage | `npm i firebase` |
-| `firebase-admin` | Server-side Firebase | `npm i firebase-admin` |
-| `recharts` | Dashboard charts | `npm i recharts` |
-| `tesseract.js` | Client-side OCR | `npm i tesseract.js` |
 | `zustand` | State management | `npm i zustand` |
 | `react-hot-toast` | Toast notifications | `npm i react-hot-toast` |
-| `lucide-react` | Icons | `npm i lucide-react` |
-| `@react-pdf/renderer` | PDF generation | `npm i @react-pdf/renderer` |
+| `@react-pdf/renderer` | PDF report generation | `npm i @react-pdf/renderer` |
 | `date-fns` | Date utilities | `npm i date-fns` |
-| `ai` | Vercel AI SDK (streaming) | `npm i ai` |
-| `@ai-sdk/google` | Gemini integration | `npm i @ai-sdk/google` |
-| `next-auth` | Auth (optional) | `npm i next-auth` |
-| `framer-motion` | Animations | `npm i framer-motion` |
-
-**One-liner install:**
-```bash
-npm i firebase firebase-admin recharts tesseract.js zustand react-hot-toast lucide-react @react-pdf/renderer date-fns ai @ai-sdk/google framer-motion
-```
+| `twilio` | SMS alerts (API route exists) | `npm i twilio` |
 
 ---
 
-## Phase 0 — Project Setup & Auth
+## Phase 0 — Project Setup & Auth ✅
 
-> **Goal:** Firebase init, authentication (Google OAuth), protected routes.
+> **Goal:** MongoDB + JWT auth, email/password login, protected dashboard shell.
 
 ### Tasks
 
-| # | Task | File(s) |
-|---|------|---------|
-| 0.1 | Create Firebase project in console, enable Auth (Google) + Firestore + Storage | Firebase Console |
-| 0.2 | Add Firebase config to `.env.local` | `.env.local` |
-| 0.3 | Initialize Firebase client SDK | `lib/firebase.ts` |
-| 0.4 | Initialize Firebase Admin SDK | `lib/firebase-admin.ts` |
-| 0.5 | Build `useAuth` hook (sign in, sign out, onAuthStateChanged) | `hooks/useAuth.ts` |
-| 0.6 | Create auth store (Zustand) | `stores/auth.store.ts` |
-| 0.7 | Build Login page (Google sign-in button) | `app/(auth)/login/page.tsx` |
-| 0.8 | Build Register page (optional — Google OAuth auto-creates) | `app/(auth)/register/page.tsx` |
-| 0.9 | Create auth middleware / route guard | `middleware.ts` or layout-level check |
-| 0.10 | Create `(dashboard)/layout.tsx` with auth guard, sidebar, header | `app/(dashboard)/layout.tsx` |
+| # | Task | Status | File(s) |
+|---|------|--------|--------|
+| 0.1 | Project scaffold — Next.js 16 + Tailwind 4 + TypeScript | ✅ | root config files |
+| 0.2 | MongoDB Atlas connection utility + global cache | ✅ | `lib/mongodb.ts` |
+| 0.3 | User model with 5 named indexes, `userId` (UUID) | ✅ | `models/User.ts` |
+| 0.4 | Password hashing + JWT sign/verify helpers | ✅ | `lib/auth.ts` |
+| 0.5 | Signup API route | ✅ | `app/api/auth/signup/route.ts` |
+| 0.6 | Login API route | ✅ | `app/api/auth/login/route.ts` |
+| 0.7 | Current user API route (JWT → userId) | ✅ | `app/api/auth/me/route.ts` |
+| 0.8 | DB health-check + index sync endpoint | ✅ | `app/api/health/db/route.ts` |
+| 0.9 | Auth layout (split-screen branding) | ✅ | `app/(auth)/layout.tsx` |
+| 0.10 | Login page (form, error, redirect) | ✅ | `app/(auth)/login/page.tsx` |
+| 0.11 | Signup page (form, error, redirect) | ✅ | `app/(auth)/signup/page.tsx` |
+| 0.12 | Dashboard shell layout (Header + MobileNav) | ✅ | `app/(dashboard)/layout.tsx` |
+| 0.13 | Route guard / middleware | ⬜ | `middleware.ts` |
+| 0.14 | `useAuth` client-side hook | ⬜ | `hooks/useAuth.ts` |
+| 0.15 | Zustand auth store | ⬜ | `stores/auth.store.ts` |
 
-### `lib/firebase.ts` — Skeleton
+### `lib/auth.ts` — Current Implementation
 
 ```ts
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// hashPassword(plain) → bcrypt hash (12 rounds)
+// comparePassword(plain, hashed) → boolean
+// signAuthToken({ sub, email, role }) → JWT (7 days, httpOnly cookie)
+// verifyAuthToken(token) → AuthTokenPayload
 ```
 
 ---
 
-## Phase 1 — Profile Module
+## Phase 1 — Profile Module ⬜
 
-> **Goal:** User profile CRUD, emergency contacts.
+> **Goal:** User profile CRUD, emergency contacts, basic health info.
 
 ### Tasks
 
-| # | Task | File(s) |
-|---|------|---------|
-| 1.1 | Define `UserProfile` type | `types/index.ts` |
-| 1.2 | Create Firestore helper for profiles | `lib/firestore.ts` |
-| 1.3 | Build ProfileForm component | `components/profile/ProfileForm.tsx` |
-| 1.4 | Build EmergencyContacts component | `components/profile/EmergencyContacts.tsx` |
-| 1.5 | Build Profile page | `app/(dashboard)/profile/page.tsx` |
-| 1.6 | Auto-create profile doc on first login | `hooks/useAuth.ts` |
+| # | Task | Status | File(s) |
+|---|------|--------|---------|
+| 1.1 | Define `UserProfile` type | ⬜ | `types/index.ts` |
+| 1.2 | MongoDB profile helper (upsert on signup) | ⬜ | `lib/mongodb.ts` |
+| 1.3 | Build ProfileForm component | ⬜ | `components/profile/ProfileForm.tsx` |
+| 1.4 | Build EmergencyContacts component | ⬜ | `components/profile/EmergencyContacts.tsx` |
+| 1.5 | Build Profile page | ⬜ | `app/(dashboard)/profile/page.tsx` |
+| 1.6 | Auto-populate profile doc on first signup | ⬜ | `app/api/auth/signup/route.ts` |
 
-### Firestore Document: `users/{uid}`
+### MongoDB Document: `userProfiles` collection — `{uid}`
 
 ```ts
 type UserProfile = {
@@ -330,7 +293,7 @@ type UserProfile = {
 
 ## Phase 2 — Wearable Integration (Google Fit)
 
-> **Goal:** OAuth to Google Fit, fetch heart rate / steps / sleep / calories, store in Firestore.
+> **Goal:** OAuth to Google Fit, fetch heart rate / steps / sleep / calories, store in MongoDB.
 
 ### Tasks
 
@@ -341,7 +304,7 @@ type UserProfile = {
 | 2.3 | Build OAuth flow (redirect → callback → store tokens) | `app/api/google-fit/route.ts` |
 | 2.4 | Build Google Fit API client | `lib/google-fit.ts` |
 | 2.5 | Fetch data types: heart rate, steps, calories, sleep | `lib/google-fit.ts` |
-| 2.6 | Store fetched data in Firestore | `lib/firestore.ts` |
+| 2.6 | Store fetched data in MongoDB | `lib/mongodb.ts` |
 | 2.7 | Build `useGoogleFit` hook | `hooks/useGoogleFit.ts` |
 | 2.8 | Add "Connect Google Fit" button in Profile | `components/profile/ProfileForm.tsx` |
 
@@ -359,12 +322,12 @@ type UserProfile = {
 ```
 User taps "Connect" → OAuth redirect → Google consent
 → Callback with auth code → Exchange for tokens
-→ Store tokens in Firestore (encrypted)
+→ Store tokens in MongoDB (encrypted)
 → Periodic fetch via API route (or on dashboard load)
-→ Store vitals in Firestore: health_data/{uid}/daily/{date}
+→ Store vitals in MongoDB: `health_data` collection, keyed by `uid + date`
 ```
 
-### Firestore Document: `health_data/{uid}/daily/{YYYY-MM-DD}`
+### MongoDB Document: `healthData` collection — `{uid, date}`
 
 ```ts
 type DailyHealth = {
@@ -445,7 +408,7 @@ Score mapping:
 | 4.7 | Implement browser notification + TTS | `lib/notifications.ts` |
 | 4.8 | Build AdherenceChart (monthly %) | `components/medicine/AdherenceChart.tsx` |
 | 4.9 | Build Medicine page | `app/(dashboard)/medicine/page.tsx` |
-| 4.10 | Store reminders + compliance in Firestore | `services/medicine.service.ts` |
+| 4.10 | Store reminders + compliance in MongoDB | `services/medicine.service.ts` |
 
 ### OCR Strategy (MVP)
 
@@ -464,7 +427,7 @@ Upload image → Send to Gemini Vision API
 
 > **Recommendation:** Use **Option B** (Gemini Vision) for hackathon — better accuracy, less parsing code.
 
-### Firestore: `medicines/{uid}/items/{medicineId}`
+### MongoDB: `medicines` collection — `{uid, medicineId}`
 
 ```ts
 type Medicine = {
@@ -502,54 +465,42 @@ function announceMedicine(name: string) {
 
 ---
 
-## Phase 5 — AI Chatbot (Health Intelligence Engine)
+## Phase 5 — AI Chatbot (Health Intelligence Engine) ✅
 
-> **Goal:** Conversational health companion that analyzes vitals, reports, and gives recommendations.
+> **Goal:** Conversational health companion via external AI webhook with rich formatted responses.
 
 ### Tasks
 
-| # | Task | File(s) |
-|---|------|---------|
-| 5.1 | Define Chat types | `types/chat.ts` |
-| 5.2 | Set up Vercel AI SDK + Gemini | `lib/ai.ts` |
-| 5.3 | Build chat API route (streaming) | `app/api/chat/route.ts` |
-| 5.4 | Build ChatWindow component | `components/chat/ChatWindow.tsx` |
-| 5.5 | Build ChatMessage (user vs AI bubble) | `components/chat/ChatMessage.tsx` |
-| 5.6 | Build ChatInput (text + voice) | `components/chat/ChatInput.tsx` |
-| 5.7 | Build `useChat` hook (streaming) | `hooks/useChat.ts` |
-| 5.8 | Feed user context to AI (vitals, medicines, history) | `app/api/chat/route.ts` |
-| 5.9 | Build Chat page | `app/(dashboard)/chat/page.tsx` |
+| # | Task | Status | File(s) |
+|---|------|--------|---------|
+| 5.1 | Chat API proxy route (webhook integration) | ✅ | `app/api/chat/route.ts` |
+| 5.2 | `ChatWindow` — message state, auto-scroll, typing indicator | ✅ | `components/chat/ChatWindow.tsx` |
+| 5.3 | `ChatMessage` — rich output parser (headings, lists, bold) | ✅ | `components/chat/ChatMessage.tsx` |
+| 5.4 | `ChatInput` — textarea, Enter-to-send, Shift+Enter newline | ✅ | `components/chat/ChatInput.tsx` |
+| 5.5 | `ChatDashboardModal` — floating FAB + blurred modal overlay | ✅ | `components/chat/ChatDashboardModal.tsx` |
+| 5.6 | Chat page (standalone) | ✅ | `app/(dashboard)/chat/page.tsx` |
+| 5.7 | `lib/uuid.ts` — client-safe UUID helper | ✅ | `lib/uuid.ts` |
+| 5.8 | `useChat` hook | ⬜ | `hooks/useChat.ts` |
+| 5.9 | Context injection (user vitals + medicine data) | ⬜ | `app/api/chat/route.ts` |
 
-### System Prompt (MVP)
-
-```
-You are VitalAI, a preventive health companion. You have access to the user's:
-- Current vitals (heart rate, steps, sleep, calories)
-- Medicine schedule and adherence
-- Past medical reports
-
-Your job:
-1. Answer health questions accurately
-2. Analyze their vitals and flag concerns
-3. Recommend diet, exercise, and sleep improvements
-4. Give early risk warnings
-5. Be empathetic and supportive
-
-IMPORTANT: You are NOT a doctor. Always recommend consulting a healthcare
-professional for serious concerns. Never diagnose conditions.
-```
-
-### AI Context Injection
+### Webhook Contract
 
 ```ts
-// Before sending to LLM, prepend user health context
-const context = `
-User Profile: ${JSON.stringify(profile)}
-Today's Vitals: ${JSON.stringify(todayHealth)}
-Medicine Adherence: ${adherencePercent}%
-Recent Risk Score: ${riskScore}
-`;
+// Request payload → POST https://synthomind.cloud/webhook/chatbot-basic
+{ chatId: string; userId: string; sessionId: string; userChat: string }
+
+// Response (single object or array)
+{ output: string } | { output: string }[]
 ```
+
+### Output Formatting (implemented in `ChatMessage.tsx`)
+
+The `parseContent()` function converts raw bot text to structured blocks:
+- `**Heading**` / `Short line:` → `<h4>` heading
+- `- item` / `• item` → `<ul>` bullet list
+- `1. item` / `1) item` → `<ol>` numbered list
+- `**bold**` inline → `<strong>`
+- Remaining lines → `<p>` paragraph
 
 ---
 
@@ -567,7 +518,7 @@ Recent Risk Score: ${riskScore}
 | 6.4 | Implement sentiment analysis on chat logs | `app/api/chat/route.ts` |
 | 6.5 | Calculate stress score from sleep + sentiment | `lib/ai.ts` |
 | 6.6 | Build Mental Health page | `app/(dashboard)/mental-health/page.tsx` |
-| 6.7 | Store mood logs in Firestore | Firestore |
+| 6.7 | Store mood logs in MongoDB | `models/MentalHealth.ts` |
 
 ### Stress Score Calculation (MVP)
 
@@ -585,7 +536,7 @@ Weights:
 stress_score = (sleep_factor + sentiment_factor + mood_factor) * 100
 ```
 
-### Firestore: `mental_health/{uid}/daily/{date}`
+### MongoDB: `mentalHealth` collection — `{uid, date}`
 
 ```ts
 type MentalHealthEntry = {
@@ -615,7 +566,7 @@ type MentalHealthEntry = {
 | 7.3 | Build in-app notification UI (toast + bell icon) | `components/ui/` |
 | 7.4 | Implement Push Notifications (Web Push API) | `lib/notifications.ts` |
 | 7.5 | Build alerts API route | `app/api/alerts/route.ts` |
-| 7.6 | Store alert history in Firestore | Firestore |
+| 7.6 | Store alert history in MongoDB | `models/Alert.ts` |
 
 ### Alert Triggers
 
@@ -668,9 +619,9 @@ type MentalHealthEntry = {
 | # | Task | File(s) |
 |---|------|---------|
 | 9.1 | Build file upload component | `components/ui/FileUpload.tsx` |
-| 9.2 | Upload to Firebase Storage | `services/health.service.ts` |
+| 9.2 | Upload file to cloud storage (Cloudinary / S3 / GridFS) | `services/health.service.ts` |
 | 9.3 | OCR extract lab values (Gemini Vision) | `app/api/ocr/route.ts` |
-| 9.4 | Store extracted values in Firestore | Firestore |
+| 9.4 | Store extracted values in MongoDB | `models/LabReport.ts` |
 | 9.5 | Build trend comparison (past vs present) | `components/reports/` |
 | 9.6 | AI analysis of trends | `app/api/chat/route.ts` |
 | 9.7 | Build Upload page | `app/(dashboard)/upload/page.tsx` |
@@ -696,177 +647,204 @@ type LabReport = {
 
 ---
 
-## Data Models (Firebase Collections)
+## Data Models (MongoDB Collections)
 
 ```
-firestore/
-├── users/{uid}                        ← UserProfile
-├── health_data/{uid}/
-│   └── daily/{YYYY-MM-DD}            ← DailyHealth
-├── medicines/{uid}/
-│   ├── items/{medicineId}            ← Medicine
-│   └── logs/{logId}                   ← MedicineLog
-├── mental_health/{uid}/
-│   └── daily/{date}                   ← MentalHealthEntry
-├── lab_reports/{uid}/
-│   └── reports/{reportId}             ← LabReport
-├── chat_sessions/{uid}/
-│   └── sessions/{sessionId}           ← ChatSession
-├── alerts/{uid}/
-│   └── history/{alertId}              ← Alert
-└── reports/{uid}/
-    └── generated/{reportId}           ← GeneratedReport
+mongodb: cavista
+├── users                              ← User (5 named indexes, userId UUID)
+├── healthData                         ← DailyHealth (uid + date compound key)
+├── medicines                          ← Medicine + MedicineLog (uid indexed)
+├── mentalHealth                       ← MentalHealthEntry (uid + date)
+├── labReports                         ← LabReport (uid + uploadDate)
+├── chatSessions                       ← ChatSession (uid + sessionId)
+├── alerts                             ← Alert history (uid + createdAt)
+└── reports                            ← GeneratedReport (uid + type + date)
 ```
 
 ---
 
 ## API Routes Summary
 
+### Implemented ✅
+
 | Method | Route | Purpose |
-|--------|-------|---------|
-| `POST` | `/api/auth/google` | Google OAuth callback |
+|--------|-------|--------|
+| `POST` | `/api/auth/signup` | Register new user, issue JWT cookie |
+| `POST` | `/api/auth/login` | Login, issue JWT cookie |
+| `GET` | `/api/auth/me` | Read JWT cookie → return current user |
+| `GET` | `/api/health/db` | MongoDB health-check + index sync |
+| `POST` | `/api/chat` | Proxy to `synthomind.cloud` chatbot webhook |
+| `POST` | `/api/ocr/extract` | OCR extraction + medical report parsing |
+| `POST` | `/api/twilio` | SMS alert dispatch |
+
+### Planned ⬜
+
+| Method | Route | Purpose |
+|--------|-------|--------|
 | `GET` | `/api/google-fit` | Fetch latest wearable data |
-| `POST` | `/api/google-fit/connect` | Initiate Google Fit OAuth |
-| `POST` | `/api/ocr` | Process prescription/report image |
-| `POST` | `/api/chat` | AI chatbot (streaming) |
-| `GET` | `/api/reports/weekly` | Generate weekly report |
-| `GET` | `/api/reports/monthly` | Generate monthly report |
-| `POST` | `/api/alerts/evaluate` | Evaluate alert conditions |
+| `POST` | `/api/google-fit/connect` | Google Fit OAuth initiation |
+| `GET` | `/api/reports/weekly` | Generate weekly health report |
+| `GET` | `/api/reports/monthly` | Generate monthly health report |
+| `POST` | `/api/alerts/evaluate` | Evaluate alert threshold conditions |
 
 ---
 
 ## Environment Variables
 
+> All variables live in `.env.local` (single file — `.env.example` removed).
+
 ```env
-# Firebase Client
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-
-# Firebase Admin (server-side only)
-FIREBASE_ADMIN_PROJECT_ID=
-FIREBASE_ADMIN_CLIENT_EMAIL=
-FIREBASE_ADMIN_PRIVATE_KEY=
-
-# Google Fit OAuth
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-# AI
-GOOGLE_GENERATIVE_AI_API_KEY=       # Gemini API key
-
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+
+# Chatbot Webhook
+CHATBOT_WEBHOOK_URL=https://synthomind.cloud/webhook/chatbot-basic
+
+# Database (MongoDB Atlas)
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/cavista?retryWrites=true&w=majority
+MONGODB_DB_NAME=cavista
+
+# Auth
+JWT_SECRET=<strong-random-secret>
+
+# Planned — add when integrating
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# TWILIO_ACCOUNT_SID=
+# TWILIO_AUTH_TOKEN=
+# TWILIO_FROM_NUMBER=
+# GOOGLE_GENERATIVE_AI_API_KEY=
 ```
 
 ---
 
 ## Implementation Checklist
 
-### Phase 0 — Setup & Auth
-- [ ] Create Firebase project
-- [ ] Add env variables
-- [ ] `lib/firebase.ts` — client init
-- [ ] `lib/firebase-admin.ts` — admin init
-- [ ] `hooks/useAuth.ts`
-- [ ] `stores/auth.store.ts`
-- [ ] Login page
-- [ ] Auth middleware / route guard
-- [ ] Dashboard layout (sidebar + header)
+> Legend: ✅ Done · 🔄 Partial · ⬜ Not started
 
-### Phase 1 — Profile
-- [ ] `UserProfile` type
-- [ ] `ProfileForm` component
-- [ ] `EmergencyContacts` component
-- [ ] Profile page
-- [ ] Auto-create profile on first login
+### Phase 0 — Setup & Auth ✅
+- ✅ Project scaffold (Next.js 16 + Tailwind 4 + TypeScript 5 + Turbopack)
+- ✅ MongoDB Atlas + Mongoose — `lib/mongodb.ts`, `models/User.ts` (5 named indexes)
+- ✅ Password hashing — `lib/auth.ts` (bcryptjs, 12 rounds)
+- ✅ JWT auth — `lib/auth.ts` (sign + verify, 7-day expiry, numeric `expiresIn`)
+- ✅ `app/api/auth/signup/route.ts` — create user, issue httpOnly JWT cookie
+- ✅ `app/api/auth/login/route.ts` — verify credentials, set cookie
+- ✅ `app/api/auth/me/route.ts` — read JWT cookie, return `userId/email/role`
+- ✅ `app/api/health/db/route.ts` — DB connection health-check + index sync
+- ✅ Login page — `app/(auth)/login/page.tsx` (client form, redirect on success)
+- ✅ Signup page — `app/(auth)/signup/page.tsx` (client form, redirect on success)
+- ✅ Auth layout — `app/(auth)/layout.tsx` (split-screen, VitalAI branding panel)
+- ✅ Dashboard layout — `app/(dashboard)/layout.tsx` (Header + MobileNav shell)
+- ✅ `components/layout/Header.tsx`, `Footer.tsx`, `MobileNav.tsx`
+- ⬜ Route guard / middleware (`middleware.ts`)
+- ⬜ `hooks/useAuth.ts` — client-side auth state hook
+- ⬜ Zustand auth store
 
-### Phase 2 — Wearable Integration
-- [ ] Enable Google Fitness API
-- [ ] OAuth flow for Google Fit
-- [ ] `lib/google-fit.ts` — API client
-- [ ] Fetch heart rate, steps, calories, sleep
-- [ ] Store in Firestore
-- [ ] "Connect Google Fit" button
+### Phase 1 — Profile ⬜
+- ⬜ `UserProfile` type in `types/index.ts`
+- ⬜ `ProfileForm` component
+- ⬜ `EmergencyContacts` component
+- ⬜ Profile page — `app/(dashboard)/profile/page.tsx`
+- ⬜ Auto-populate profile on first signup
 
-### Phase 3 — Dashboard
-- [ ] HeartRateCard
-- [ ] StepsCard
-- [ ] SleepCard
-- [ ] CalorieCard
-- [ ] RiskScoreBadge
-- [ ] WeeklyTrendChart
-- [ ] Dashboard page assembly
-- [ ] Auto-refresh polling
-- [ ] Abnormal reading highlights
+### Phase 2 — Wearable Integration (Google Fit) ⬜
+- ⬜ Enable Google Fitness API in GCP
+- ⬜ OAuth flow for Google Fit
+- ⬜ `lib/google-fit.ts` — API client
+- ⬜ Fetch heart rate, steps, calories, sleep
+- ⬜ Store fetched data in MongoDB
+- ⬜ "Connect Google Fit" button in Profile
 
-### Phase 4 — Medicine Reminders
-- [ ] PrescriptionUpload component
-- [ ] OCR API route (Gemini Vision)
-- [ ] OCR parser
-- [ ] MedicineList CRUD
-- [ ] ReminderCard (Taken/Snooze/Reschedule)
-- [ ] Browser notifications + TTS
-- [ ] AdherenceChart
-- [ ] Medicine page
+### Phase 3 — Dashboard ✅
+- ✅ `HeartRateCard.tsx`
+- ✅ `StepsCard.tsx`
+- ✅ `SleepCard.tsx`
+- ✅ `BloodPressureCard.tsx`
+- ✅ `RiskScoreBadge.tsx`
+- ✅ `WeeklyTrendChart.tsx`
+- ✅ `LiveMonitoring.tsx` (real-time vitals panel)
+- ✅ `HeroSection.tsx`, `MissionSection.tsx`, `SpecialistGrid.tsx`
+- ✅ `ProfileSnippet.tsx`, `RemindersWidget.tsx`, `DailyInsight.tsx` (sidebar widgets)
+- ✅ Dashboard page assembled — `app/(dashboard)/dashboard/page.tsx`
+- ⬜ CalorieCard (separate component)
+- ⬜ Auto-refresh polling (every 5 min)
 
-### Phase 5 — AI Chatbot
-- [ ] Chat API route (streaming)
-- [ ] ChatWindow, ChatMessage, ChatInput
-- [ ] `useChat` hook
-- [ ] Context injection (vitals, meds, history)
-- [ ] Chat page
+### Phase 4 — Medicine Reminders 🔄
+- ✅ Medicine page — `app/(dashboard)/medi-reminder/page.tsx`
+- ✅ `MedicineCard.tsx` — card UI per medicine
+- ✅ `AudioAlertToggle.tsx` — audio alert on/off
+- ✅ `DailyProgressWidget.tsx` — today's adherence widget
+- ✅ `LowStockAlert.tsx` — low stock warning component
+- ✅ `MainTabSwitcher.tsx` + `SubTabBar.tsx` — tab navigation
+- ✅ `MedicalTestCard.tsx` — test/lab result card
+- ✅ OCR API route — `app/api/ocr/extract/route.ts`
+- ✅ `lib/medicalReportParser.ts` — parse OCR output to structured data
+- ⬜ `PrescriptionUpload` component (drag-and-drop image upload)
+- ⬜ `AdherenceChart` (monthly % chart)
+- ⬜ Browser push notifications + TTS
 
-### Phase 6 — Mental Health
-- [ ] MoodScore component
-- [ ] StressIndicator
-- [ ] BreathingExercise
-- [ ] Sentiment analysis integration
-- [ ] Stress score calculation
-- [ ] Mental Health page
+### Phase 5 — AI Chatbot ✅
+- ✅ Chat API route — `app/api/chat/route.ts` (proxies to `https://synthomind.cloud/webhook/chatbot-basic`)
+- ✅ `ChatWindow.tsx` — message state, auto-scroll, typing indicator
+- ✅ `ChatMessage.tsx` — rich formatter (headings, bullets, numbered lists, bold)
+- ✅ `ChatInput.tsx` — textarea, Enter-to-send, Shift+Enter for newline
+- ✅ `ChatDashboardModal.tsx` — floating FAB + blurred transparent modal overlay
+- ✅ Chat page — `app/(dashboard)/chat/page.tsx`
+- ✅ `lib/uuid.ts` — client-safe UUID helper
+- ⬜ `useChat` hook
+- ⬜ Context injection (user vitals + medicine data passed to AI)
 
-### Phase 7 — Smart Alerts
-- [ ] Alert threshold constants
-- [ ] Alert evaluation engine
-- [ ] In-app toast notifications
-- [ ] Push notification setup
-- [ ] Alert history storage
+### Phase 6 — Mental Health ⬜
+- ⬜ `MoodScore` component
+- ⬜ `StressIndicator`
+- ⬜ `BreathingExercise`
+- ⬜ Sentiment analysis integration
+- ⬜ Stress score calculation
+- ⬜ Mental Health page — `app/(dashboard)/mental-health/page.tsx`
 
-### Phase 8 — Smart Reports
-- [ ] Report data aggregation
-- [ ] PDF template
-- [ ] Report API route
-- [ ] ReportCard + ReportViewer
-- [ ] Reports page
+### Phase 7 — Smart Alerts 🔄
+- ✅ `AudioAlertToggle.tsx` — audio alerts for medicine reminders
+- ✅ `app/api/twilio/` — SMS alert dispatch via Twilio
+- ✅ `LowStockAlert.tsx` — in-component low-stock flag
+- ⬜ `lib/alerts.ts` — alert threshold evaluation engine
+- ⬜ In-app toast notification UI
+- ⬜ Web Push API setup
+- ⬜ Alert history stored in MongoDB
 
-### Phase 9 — Medical Report Upload
-- [ ] File upload component
-- [ ] Firebase Storage upload
-- [ ] OCR extraction for lab values
-- [ ] Trend comparison UI
-- [ ] Upload page
+### Phase 8 — Smart Reports ⬜
+- ⬜ Report data aggregation service
+- ⬜ PDF template (`lib/pdf.ts`)
+- ⬜ Report API routes (`/api/reports/weekly`, `/api/reports/monthly`)
+- ⬜ `ReportCard` + `ReportViewer` components
+- ⬜ Reports page — `app/(dashboard)/reports/page.tsx`
+
+### Phase 9 — Medical Report Upload 🔄
+- ✅ `app/api/ocr/extract/route.ts` — OCR extraction endpoint
+- ✅ `lib/medicalReportParser.ts` — structured data parser from OCR output
+- ⬜ File upload UI component
+- ⬜ Cloud storage integration (Cloudinary / S3 / GridFS)
+- ⬜ Lab value trend comparison UI
+- ⬜ Upload page — `app/(dashboard)/upload/page.tsx`
 
 ---
 
 ## Suggested Implementation Order (Hackathon Sprint)
 
-| Priority | Phase | Estimated Time | Reason |
-|----------|-------|---------------|--------|
-| 🔴 P0 | Phase 0 — Auth | 2-3 hours | Foundation — everything depends on this |
-| 🔴 P0 | Phase 1 — Profile | 1-2 hours | Required for personalization |
-| 🔴 P0 | Phase 3 — Dashboard | 3-4 hours | Core visual — **demo centerpiece** |
-| 🟠 P1 | Phase 4 — Medicine | 3-4 hours | Unique differentiator (OCR + TTS) |
-| 🟠 P1 | Phase 5 — Chatbot | 2-3 hours | High impact, AI SDK makes it fast |
-| 🟡 P2 | Phase 2 — Google Fit | 3-4 hours | OAuth is complex; can use mock data initially |
-| 🟡 P2 | Phase 7 — Alerts | 2 hours | Builds on existing data |
-| 🟢 P3 | Phase 6 — Mental Health | 2-3 hours | Nice-to-have for hackathon |
-| 🟢 P3 | Phase 8 — Reports | 2-3 hours | Nice-to-have for hackathon |
-| 🟢 P3 | Phase 9 — Upload Reports | 2 hours | Stretch goal |
+| Priority | Phase | Status | Remaining |
+|----------|-------|--------|-----------|
+| 🔴 P0 | Phase 0 — Auth | ✅ Done | Route guard / middleware |
+| 🔴 P0 | Phase 3 — Dashboard | ✅ Done | CalorieCard, auto-refresh |
+| 🔴 P0 | Phase 5 — AI Chatbot | ✅ Done | Context injection, useChat hook |
+| 🟠 P1 | Phase 4 — Medicine | 🔄 Partial | PrescriptionUpload, AdherenceChart, TTS |
+| 🟠 P1 | Phase 7 — Alerts | 🔄 Partial | Alert engine, push notifications |
+| 🟠 P1 | Phase 9 — Upload Reports | 🔄 Partial | Upload UI, storage integration |
+| 🟡 P2 | Phase 1 — Profile | ⬜ Next | Full profile page + emergency contacts |
+| 🟡 P2 | Phase 8 — Reports | ⬜ Next | PDF generation, report viewer |
+| 🟢 P3 | Phase 2 — Google Fit | ⬜ Later | OAuth flow, wearable data sync |
+| 🟢 P3 | Phase 6 — Mental Health | ⬜ Later | Mood tracker, stress score, breathing |
 
-> **Hackathon tip:** Start with mock health data for the dashboard while Google Fit OAuth is being set up in parallel. The dashboard with charts is the most visually impressive part for the demo.
+> **Current sprint focus:** Close out Phase 4 (medicine TTS + AdherenceChart) and Phase 1 (profile page) — these two complete the core user experience before the demo.
 
 ---
 
