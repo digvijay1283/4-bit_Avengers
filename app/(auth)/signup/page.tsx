@@ -54,7 +54,7 @@ function SignupForm() {
         return;
       }
 
-      const nextPath = payload.user?.role === "doctor" ? "/doctor" : "/dashboard";
+      const nextPath = payload.user?.role === "doctor" ? "/login?role=doctor" : "/login";
       router.push(nextPath);
       router.refresh();
     } catch {
