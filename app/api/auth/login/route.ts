@@ -40,13 +40,21 @@ export async function POST(request: Request) {
       );
     }
 
+    const rawRole = (user as { role?: string }).role;
+    const normalizedRole: "user" | "doctor" =
+      rawRole === "doctor" || rawRole === "admin" ? "doctor" : "user";
+
+    if (rawRole !== normalizedRole) {
+      user.role = normalizedRole;
+    }
+
     user.lastLoginAt = new Date();
     await user.save();
 
     const token = signAuthToken({
       sub: user.userId,
       email: user.email,
-      role: user.role,
+      role: normalizedRole,
     });
 
     const response = NextResponse.json(
@@ -57,7 +65,7 @@ export async function POST(request: Request) {
           userId: user.userId,
           fullName: user.fullName,
           email: user.email,
-          role: user.role,
+          role: normalizedRole,
         },
       },
       { status: 200 }

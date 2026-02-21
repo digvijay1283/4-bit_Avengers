@@ -9,11 +9,15 @@ export async function POST(request: Request) {
       fullName?: string;
       email?: string;
       password?: string;
+      role?: "user" | "doctor";
     };
 
     const fullName = body.fullName?.trim();
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
+    const role = body.role === "doctor" ? "doctor" : "user";
+    const roleForPersistence: "user" | "doctor" | "admin" =
+      role === "doctor" ? "admin" : "user";
 
     if (!fullName || !email || !password) {
       return NextResponse.json(
@@ -41,12 +45,20 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
 
-    const created = await User.create({ fullName, email, passwordHash });
+    const created = await User.create({
+      fullName,
+      email,
+      passwordHash,
+      role: roleForPersistence,
+    });
+
+    const normalizedRole: "user" | "doctor" =
+      created.role === "admin" ? "doctor" : created.role;
 
     const token = signAuthToken({
       sub: created.userId,
       email: created.email,
-      role: created.role,
+      role: normalizedRole,
     });
 
     const response = NextResponse.json(
@@ -57,7 +69,7 @@ export async function POST(request: Request) {
           userId: created.userId,
           fullName: created.fullName,
           email: created.email,
-          role: created.role,
+          role: normalizedRole,
         },
       },
       { status: 201 }

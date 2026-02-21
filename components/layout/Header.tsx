@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { APP_NAME, NAV_ITEMS, ROUTES } from "@/constants";
+import { APP_NAME, getNavItemsByRole, ROUTES } from "@/constants";
 import { usePathname } from "next/navigation";
 import { Leaf } from "lucide-react";
+import { useMemo } from "react";
+import { useSession } from "@/hooks/useSession";
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, logout } = useSession();
+  const role = user?.role ?? "user";
+
+  const navItems = useMemo(() => getNavItemsByRole(role), [role]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-[#122018]/80">
@@ -21,7 +27,7 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -37,9 +43,21 @@ export default function Header() {
         </nav>
 
         {/* CTA */}
-        <button className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow-md">
-          Try for free
-        </button>
+        {user ? (
+          <button
+            onClick={logout}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow-md"
+          >
+            Logout
+          </button>
+        ) : (
+          <Link
+            href={ROUTES.LOGIN}
+            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow-md"
+          >
+            Sign in
+          </Link>
+        )}
       </div>
     </header>
   );
