@@ -13,6 +13,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   PROFILE: "/profile",
+  MEDI_REMINDER: "/medi-reminder",
   MEDICINE: "/medicine",
   MENTAL_HEALTH: "/mental-health",
   REPORTS: "/reports",
@@ -49,6 +50,7 @@ export const HEALTH_THRESHOLDS = {
 export const NAV_ITEMS = [
   { label: "Home", href: ROUTES.HOME, icon: "Home" },
   { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "LayoutDashboard" },
+  { label: "Medi Reminder", href: ROUTES.MEDI_REMINDER, icon: "Pill" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
   { label: "Reports", href: ROUTES.REPORTS, icon: "FileText" },
 ] as const;

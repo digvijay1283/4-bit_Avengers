@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   FileText,
   User,
-  Plus,
+  Pill,
 } from "lucide-react";
 
 const bottomNavItems = [
@@ -44,10 +44,13 @@ export default function MobileNav() {
             );
           })}
 
-          {/* Center FAB */}
-          <div className="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white dark:border-slate-800">
-            <Plus className="h-5 w-5 text-white" />
-          </div>
+          {/* Center FAB — Medi Reminder */}
+          <Link
+            href="/medi-reminder"
+            className="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white"
+          >
+            <Pill className="h-5 w-5 text-white" />
+          </Link>
 
           {bottomNavItems.slice(2).map((item) => {
             const Icon = item.icon;

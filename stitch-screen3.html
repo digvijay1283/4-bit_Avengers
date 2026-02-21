@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VitalAI Medi Reminders Desktop</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#106534",
+                "background-light": "#F8FAFC",
+                "background-dark": "#122018",
+                "slate-dark": "#1E293B",
+                "soft-mint": "#D1FAE5",
+                },
+                fontFamily: {
+                "display": ["Manrope", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+            },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-dark dark:text-slate-100 antialiased overflow-x-hidden">
+<div class="flex min-h-screen">
+<aside class="hidden lg:flex w-64 flex-col bg-white dark:bg-slate-800 border-r border-gray-100 dark:border-gray-800 h-screen sticky top-0 overflow-y-auto">
+<div class="p-6">
+<div class="flex items-center gap-2 mb-8">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">local_florist</span>
+</div>
+<span class="text-xl font-bold tracking-tight text-slate-dark dark:text-white">VitalAI</span>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-semibold">Home</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined fill-1">pill</span>
+<span class="font-bold">Reminders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-semibold">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-semibold">Profile</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto p-6">
+<div class="bg-gradient-to-br from-primary to-green-800 rounded-2xl p-4 text-white">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-soft-mint">psychology</span>
+<span class="text-xs font-bold uppercase tracking-wider text-soft-mint">Tip</span>
+</div>
+<p class="text-xs text-white/90 leading-relaxed">Consistency is key. Taking meds at the same time daily improves efficacy.</p>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<header class="bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 z-20">
+<div class="flex justify-between items-center px-6 py-4">
+<div>
+<h1 class="text-2xl font-bold text-slate-900 dark:text-white">Medi Reminder</h1>
+<p class="text-sm text-slate-500">Manage your daily medications and tests</p>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-gray-200 dark:border-gray-700">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold text-slate-900 dark:text-white">Alex Johnson</p>
+<p class="text-xs text-slate-500">Premium Member</p>
+</div>
+<img alt="User profile picture" class="w-10 h-10 object-cover rounded-full border-2 border-soft-mint" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark">
+<div class="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8">
+<div class="flex-1 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800 p-1 rounded-xl inline-flex shadow-sm border border-gray-100 dark:border-gray-700 w-full sm:w-auto self-start">
+<button class="flex-1 sm:flex-none px-8 py-3 rounded-lg bg-primary text-white font-bold text-sm shadow-sm transition-all">Medicines</button>
+<button class="flex-1 sm:flex-none px-8 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold text-sm transition-colors">Medical Tests</button>
+</div>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="flex gap-6 border-b border-gray-200 dark:border-gray-700 w-full sm:w-auto">
+<button class="pb-2 border-b-2 border-primary text-primary font-bold text-sm">Daily Schedule</button>
+<button class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition-colors">Inventory</button>
+<button class="pb-2 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-medium text-sm transition-colors">History</button>
+</div>
+<div class="flex items-center gap-2 text-sm text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm">
+<span class="material-symbols-outlined text-lg">calendar_month</span>
+<span>Today, Oct 24</span>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-6">
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-6 relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-orange-400"></div>
+<div class="flex-shrink-0">
+<div class="w-16 h-16 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined text-3xl">wb_sunny</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Vitamin D Complex</h3>
+<p class="text-sm text-slate-500">1 Tablet • After Breakfast</p>
+</div>
+<span class="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">Due Soon</span>
+</div>
+<div class="mt-4 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-slate-400">schedule</span>
+<span class="font-semibold">09:00 AM</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-slate-400">medication_liquid</span>
+<span>500mg</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col justify-center sm:w-32">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">check</span>
+                                    Take Now
+                                </button>
+<button class="mt-2 w-full text-xs text-slate-400 hover:text-slate-600 font-medium text-center">Snooze 10m</button>
+</div>
+</div>
+<div class="bg-red-50/50 dark:bg-red-900/10 rounded-2xl p-6 shadow-sm border border-red-100 dark:border-red-900/30 flex flex-col sm:flex-row gap-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
+<div class="flex-shrink-0">
+<div class="w-16 h-16 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-red-500 shadow-sm border border-red-100 dark:border-red-900/20">
+<span class="material-symbols-outlined text-3xl">bloodtype</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Metformin</h3>
+<p class="text-sm text-slate-500">1 Tablet • Before Breakfast</p>
+</div>
+<span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">Missed</span>
+</div>
+<div class="mt-4 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+<div class="flex items-center gap-1.5 text-red-600 font-medium">
+<span class="material-symbols-outlined">warning</span>
+<span>Scheduled: 08:00 AM</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-slate-400">medication_liquid</span>
+<span>850mg</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col justify-center sm:w-32">
+<button class="w-full bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold py-3 px-4 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+                                    Mark Taken
+                                </button>
+<p class="mt-2 text-xs text-red-500 text-center">Log as skipped?</p>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row gap-6 relative overflow-hidden group hover:shadow-md transition-shadow opacity-75 hover:opacity-100">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-gray-300 dark:bg-gray-600"></div>
+<div class="flex-shrink-0">
+<div class="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-500">
+<span class="material-symbols-outlined text-3xl">water_drop</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-lg font-bold text-slate-900 dark:text-white">Omega-3 Fish Oil</h3>
+<p class="text-sm text-slate-500">1 Capsule • With Lunch</p>
+</div>
+<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2.5 py-1 rounded-full">Upcoming</span>
+</div>
+<div class="mt-4 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-slate-400">schedule</span>
+<span class="font-semibold">01:00 PM</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-slate-400">medication_liquid</span>
+<span>1000mg</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col justify-center sm:w-32">
+<button class="w-full bg-slate-100 text-slate-400 font-bold py-3 px-4 rounded-xl cursor-not-allowed flex items-center justify-center gap-2">
+                                    Wait
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<aside class="w-full lg:w-80 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="bg-soft-mint text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined">volume_up</span>
+</div>
+<div>
+<h3 class="font-bold text-slate-900 dark:text-white">Audio Alerts</h3>
+<p class="text-xs text-slate-500">Voice reminders</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<h3 class="font-bold text-lg mb-4 text-slate-900 dark:text-white">Daily Progress</h3>
+<div class="relative w-40 h-40 mx-auto flex items-center justify-center mb-6">
+<svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#F1F5F9" stroke-width="8"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#106534" stroke-dasharray="251.2" stroke-dashoffset="100" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">60%</span>
+<span class="text-xs text-slate-400 font-semibold uppercase">Done</span>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Taken</span>
+</div>
+<span class="font-bold text-slate-900 dark:text-white">3/5</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Missed</span>
+</div>
+<span class="font-bold text-slate-900 dark:text-white">1</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-gray-300"></span>
+<span class="text-sm font-medium text-slate-600 dark:text-slate-300">Pending</span>
+</div>
+<span class="font-bold text-slate-900 dark:text-white">1</span>
+</div>
+</div>
+<button class="w-full mt-6 py-3 border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+                            View Full Report
+                        </button>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="flex items-center gap-3 mb-3">
+<div class="p-2 bg-yellow-100 text-yellow-600 rounded-lg">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+</div>
+<div>
+<h4 class="font-bold text-sm">Low Stock Alert</h4>
+<p class="text-xs text-slate-500">Refill needed soon</p>
+</div>
+</div>
+<div class="p-3 bg-yellow-50 rounded-xl border border-yellow-100 mb-3">
+<div class="flex justify-between text-sm mb-1">
+<span class="font-semibold text-slate-700">Metformin</span>
+<span class="font-bold text-yellow-700">3 days left</span>
+</div>
+<div class="w-full bg-yellow-200 rounded-full h-1.5">
+<div class="bg-yellow-500 h-1.5 rounded-full" style="width: 15%"></div>
+</div>
+</div>
+<button class="w-full text-primary text-xs font-bold hover:underline">Order Refill</button>
+</div>
+</aside>
+</div>
+</div>
+</main>
+<div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-gray-700 pb-safe pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+<div class="flex justify-between items-end pb-3">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</a>
+<div class="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white dark:border-slate-800">
+<span class="material-symbols-outlined text-white">pill</span>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-medium">Report</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</div>
+</div>
+
+</body></html>
