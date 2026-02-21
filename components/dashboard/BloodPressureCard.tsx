@@ -11,11 +11,11 @@ export default function BloodPressureCard() {
       </div>
       <div className="mt-2">
         <span className="text-3xl font-bold text-slate-900 dark:text-white">
-          120/80
+          -
         </span>
         <span className="text-sm text-slate-500 ml-1">mmHg</span>
       </div>
-      <p className="text-xs text-slate-400 mt-1">Normal range</p>
+      <p className="text-xs text-slate-400 mt-1">No live data available</p>
     </Card>
   );
 }

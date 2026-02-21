@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { Bell, Save, X, Pencil, Loader2 } from "lucide-react";
 import ProfileCard from "@/components/profile/ProfileCard";
 import PersonalInfo from "@/components/profile/PersonalInfo";
@@ -46,12 +47,20 @@ const EDITABLE_FIELDS: {
 
 /* ── Page Component ─────────────────────────────────────────────────── */
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
   const { user } = useSession();
   const { profile, status, updateProfile, refresh } = useProfile();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState(false);
   const role = user?.role ?? "user";
+
+  useEffect(() => {
+    if (searchParams.get("edit") === "1") {
+      setEditing(true);
+    }
+  }, [searchParams]);
 
   // Doctor gets a doctor-specific profile view
   if (role === "doctor") {
@@ -142,6 +151,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     setSaveMsg(null);
+    setSaveError(false);
 
     const fd = new FormData(e.currentTarget);
     const updates: Record<string, string | null> = {};
@@ -154,9 +164,10 @@ export default function ProfilePage() {
     if (result.ok) {
       setSaveMsg("Profile updated!");
       setEditing(false);
-      refresh();
+      await refresh();
     } else {
       setSaveMsg(result.message);
+      setSaveError(true);
     }
     setSaving(false);
     setTimeout(() => setSaveMsg(null), 3000);
@@ -212,7 +223,13 @@ export default function ProfilePage() {
 
       {/* Toast */}
       {saveMsg && (
-        <div className="fixed top-6 right-6 z-50 bg-white border border-emerald-200 text-emerald-700 rounded-xl px-5 py-3 shadow-lg text-sm font-medium">
+        <div
+          className={`fixed top-6 right-6 z-50 bg-white rounded-xl px-5 py-3 shadow-lg text-sm font-medium border ${
+            saveError
+              ? "border-red-200 text-red-700"
+              : "border-emerald-200 text-emerald-700"
+          }`}
+        >
           {saveMsg}
         </div>
       )}

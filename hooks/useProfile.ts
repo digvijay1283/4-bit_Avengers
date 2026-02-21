@@ -35,7 +35,7 @@ export function useProfile() {
   const fetchProfile = useCallback(async () => {
     try {
       setStatus("loading");
-      const res = await fetch("/api/profile");
+      const res = await fetch("/api/profile", { cache: "no-store" });
       const data = (await res.json()) as {
         ok: boolean;
         profile?: UserProfile;
@@ -56,6 +56,7 @@ export function useProfile() {
       const res = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify(fields),
       });
       const data = (await res.json()) as {

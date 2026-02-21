@@ -25,7 +25,7 @@ export default function LiveMonitoring() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Large Circular Progress (AI Risk Score) */}
-        <RiskScoreBadge score={88} />
+        <RiskScoreBadge score={null} />
 
         {/* Vitals Grid */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">

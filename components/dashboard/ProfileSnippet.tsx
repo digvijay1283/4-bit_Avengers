@@ -2,6 +2,7 @@
 
 import Card from "@/components/ui/Card";
 import Image from "next/image";
+import Link from "next/link";
 import { useProfile, getAge, getInitials } from "@/hooks/useProfile";
 import { useSession } from "@/hooks/useSession";
 
@@ -31,9 +32,13 @@ export default function ProfileSnippet() {
             {getInitials(displayName)}
           </div>
         )}
-        <button className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full shadow-md hover:bg-primary/90">
+        <Link
+          href="/profile?edit=1"
+          className="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full shadow-md hover:bg-primary/90"
+          aria-label="Edit profile"
+        >
           <span className="material-symbols-outlined text-sm">edit</span>
-        </button>
+        </Link>
       </div>
       <h3 className="text-xl font-bold text-slate-900 dark:text-white">
         {displayName}
