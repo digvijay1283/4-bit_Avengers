@@ -6,17 +6,43 @@ export type MedicineStatus = "taken" | "missed" | "due-soon" | "upcoming" | "sno
 export type MedicalTestStatus = "completed" | "pending" | "overdue" | "scheduled";
 
 export type Medicine = {
-  id: string;
+  _id: string;
+  userId: string;
   name: string;
   dosage: string;
   frequency: string;
   instruction: string;
-  time: string;
-  icon: string;
-  iconColor: string;
-  iconBg: string;
+  times: string[];          // ["09:00","21:00"]
+  type: "medicine" | "supplement" | "other";
+  source: "manual" | "ocr";
   status: MedicineStatus;
-  accentColor: string;
+  isActive: boolean;
+  totalQuantity: number;
+  remainingQuantity: number;
+  missedStreakCount: number; // consecutive missed doses — alerts after 5
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Lightweight version returned from OCR before user confirms */
+export type ExtractedMedicine = {
+  name: string;
+  dosage: string;
+  frequency: string;
+  times: string[];
+  instruction: string;
+};
+
+export type DoseAction = "taken" | "snoozed" | "missed" | "skipped";
+
+export type DoseLog = {
+  _id: string;
+  medicineId: string;
+  userId: string;
+  scheduledTime: string;   // "09:00"
+  action: DoseAction;
+  actionAt: string;        // ISO timestamp
+  createdAt: string;
 };
 
 export type MedicalTest = {
@@ -36,6 +62,7 @@ export type MedicalTest = {
 export type DailyProgress = {
   taken: number;
   missed: number;
+  snoozed: number;
   pending: number;
   total: number;
 };

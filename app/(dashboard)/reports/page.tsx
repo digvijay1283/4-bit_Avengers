@@ -210,6 +210,10 @@ export default function ReportsPage() {
   /* ── detail modal ───────────────────────────────────────────────── */
   const DetailModal = ({ report }: { report: Report }) => {
     const ext = report.extractedData;
+    const visit = ext?.visit ?? {};
+    const patient = ext?.patient ?? {};
+    const sections = ext?.sections ?? {};
+    const keyInsights = ext?.keyInsights ?? [];
     return (
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
@@ -261,28 +265,28 @@ export default function ReportsPage() {
                 )}
 
                 {/* Visit */}
-                {(ext.visit.doctorName || ext.visit.visitDate) && (
+                {(visit.doctorName || visit.visitDate) && (
                   <div className="bg-slate-50 rounded-xl p-4">
                     <h4 className="font-medium text-sm text-slate-700 mb-2 flex items-center gap-2">
                       <Stethoscope size={16} /> Visit Details
                     </h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {ext.visit.doctorName && (
+                      {visit.doctorName && (
                         <div>
                           <span className="text-slate-500">Doctor:</span>{" "}
-                          {ext.visit.doctorName}
+                          {visit.doctorName}
                         </div>
                       )}
-                      {ext.visit.specialization && (
+                      {visit.specialization && (
                         <div>
                           <span className="text-slate-500">Specialty:</span>{" "}
-                          {ext.visit.specialization}
+                          {visit.specialization}
                         </div>
                       )}
-                      {ext.visit.visitDate && (
+                      {visit.visitDate && (
                         <div>
                           <span className="text-slate-500">Date:</span>{" "}
-                          {ext.visit.visitDate}
+                          {visit.visitDate}
                         </div>
                       )}
                     </div>
@@ -290,34 +294,34 @@ export default function ReportsPage() {
                 )}
 
                 {/* Patient */}
-                {ext.patient.fullName && (
+                {patient.fullName && (
                   <div className="bg-slate-50 rounded-xl p-4">
                     <h4 className="font-medium text-sm text-slate-700 mb-2">
                       Patient Information
                     </h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {ext.patient.fullName && (
+                      {patient.fullName && (
                         <div>
                           <span className="text-slate-500">Name:</span>{" "}
-                          {ext.patient.fullName}
+                          {patient.fullName}
                         </div>
                       )}
-                      {ext.patient.birthDate && (
+                      {patient.birthDate && (
                         <div>
                           <span className="text-slate-500">DOB:</span>{" "}
-                          {ext.patient.birthDate}
+                          {patient.birthDate}
                         </div>
                       )}
-                      {ext.patient.phone && (
+                      {patient.phone && (
                         <div>
                           <span className="text-slate-500">Phone:</span>{" "}
-                          {ext.patient.phone}
+                          {patient.phone}
                         </div>
                       )}
-                      {ext.patient.email && (
+                      {patient.email && (
                         <div>
                           <span className="text-slate-500">Email:</span>{" "}
-                          {ext.patient.email}
+                          {patient.email}
                         </div>
                       )}
                     </div>
@@ -325,30 +329,28 @@ export default function ReportsPage() {
                 )}
 
                 {/* Sections */}
-                {(ext.sections.assessment ||
-                  ext.sections.diagnosis ||
-                  ext.sections.prescription) && (
+                {(sections.assessment || sections.diagnosis || sections.prescription) && (
                   <div className="space-y-3">
-                    {ext.sections.assessment && (
-                      <SectionBlock title="Assessment" text={ext.sections.assessment} />
+                    {sections.assessment && (
+                      <SectionBlock title="Assessment" text={sections.assessment} />
                     )}
-                    {ext.sections.diagnosis && (
-                      <SectionBlock title="Diagnosis" text={ext.sections.diagnosis} />
+                    {sections.diagnosis && (
+                      <SectionBlock title="Diagnosis" text={sections.diagnosis} />
                     )}
-                    {ext.sections.prescription && (
-                      <SectionBlock title="Prescription" text={ext.sections.prescription} />
+                    {sections.prescription && (
+                      <SectionBlock title="Prescription" text={sections.prescription} />
                     )}
                   </div>
                 )}
 
                 {/* Key Insights */}
-                {ext.keyInsights.length > 0 && (
+                {keyInsights.length > 0 && (
                   <div className="bg-emerald-50 rounded-xl p-4">
                     <h4 className="font-medium text-sm text-[#106534] mb-2">
                       Key Insights
                     </h4>
                     <ul className="space-y-1">
-                      {ext.keyInsights.map((insight, i) => (
+                      {keyInsights.map((insight, i) => (
                         <li
                           key={i}
                           className="text-sm text-slate-700 flex items-start gap-2"
@@ -554,7 +556,7 @@ export default function ReportsPage() {
                             {report.extractedData.reportType}
                           </span>
                         )}
-                        {report.extractedData.visit.doctorName && (
+                        {report.extractedData?.visit?.doctorName && (
                           <span className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg text-xs font-medium">
                             <Stethoscope size={12} />
                             Dr. {report.extractedData.visit.doctorName}
@@ -563,9 +565,9 @@ export default function ReportsPage() {
                       </div>
 
                       {/* Key insights */}
-                      {report.extractedData.keyInsights.length > 0 && (
+                      {(report.extractedData?.keyInsights?.length ?? 0) > 0 && (
                         <div className="space-y-1">
-                          {report.extractedData.keyInsights.map((insight, i) => (
+                          {report.extractedData?.keyInsights?.map((insight, i) => (
                             <p
                               key={i}
                               className="text-xs text-slate-600 flex items-start gap-1.5"

@@ -18,8 +18,10 @@ export const ROUTES = {
   MEDI_REMINDER: "/medi-reminder",
   MENTAL_HEALTH: "/mental-health",
   REPORTS: "/reports",
+  SHARE: "/share",
   UPLOAD: "/upload",
   CHAT: "/chat",
+  DOCTOR_SHARED: "/doctor/shared", // + /[token]
 } as const;
 
 export type AppRole = "user" | "doctor";
@@ -56,6 +58,7 @@ const USER_NAV_ITEMS = [
   { label: "Dashboard", href: ROUTES.DASHBOARD, icon: "LayoutDashboard" },
   { label: "Medi Reminder", href: ROUTES.MEDI_REMINDER, icon: "Pill" },
   { label: "Reports", href: ROUTES.REPORTS, icon: "FileText" },
+  { label: "Share", href: ROUTES.SHARE, icon: "QrCode" },
   { label: "Mental Health", href: ROUTES.MENTAL_HEALTH, icon: "Brain" },
   { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
@@ -77,8 +80,10 @@ export const ROUTE_ACCESS: Record<string, AppRole[]> = {
   [ROUTES.MENTAL_HEALTH]: ["user"],
   [ROUTES.UPLOAD]: ["user"],
   [ROUTES.CHAT]: ["user", "doctor"],
+  [ROUTES.SHARE]: ["user"],
   [ROUTES.DOCTOR]: ["doctor"],
   [ROUTES.DOCTOR_PATIENT]: ["doctor"],
+  [ROUTES.DOCTOR_SHARED]: ["doctor"],
   [ROUTES.PROFILE]: ["user", "doctor"],
 };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import MainTabSwitcher from "@/components/medicine/MainTabSwitcher";
 import SubTabBar from "@/components/medicine/SubTabBar";
 import MedicineCard from "@/components/medicine/MedicineCard";
@@ -9,55 +9,14 @@ import AudioAlertToggle from "@/components/medicine/AudioAlertToggle";
 import DailyProgressWidget from "@/components/medicine/DailyProgressWidget";
 import LowStockAlert from "@/components/medicine/LowStockAlert";
 import AddMedicineFAB from "@/components/medicine/AddMedicineFAB";
-import type { Medicine, MedicalTest } from "@/types/medicine";
-import Image from "next/image";
-import { Bell } from "lucide-react";
+import VoiceReminderSystem from "@/components/medicine/VoiceReminderSystem";
+import MissedAlarmAlert from "@/components/medicine/MissedAlarmAlert";
+import EditMedicineModal from "@/components/medicine/EditMedicineModal";
+import type { Medicine, MedicalTest, DailyProgress, LowStockItem } from "@/types/medicine";
+import toast from "react-hot-toast";
 
-/* ── Mock data (medicines) ──────────────────────────────────── */
-const medicines: Medicine[] = [
-  {
-    id: "1",
-    name: "Vitamin D Complex",
-    dosage: "500mg",
-    frequency: "Daily",
-    instruction: "1 Tablet • After Breakfast",
-    time: "09:00 AM",
-    icon: "wb_sunny",
-    iconColor: "text-orange-500",
-    iconBg: "bg-orange-50",
-    status: "due-soon",
-    accentColor: "orange",
-  },
-  {
-    id: "2",
-    name: "Metformin",
-    dosage: "850mg",
-    frequency: "Daily",
-    instruction: "1 Tablet • Before Breakfast",
-    time: "08:00 AM",
-    icon: "bloodtype",
-    iconColor: "text-red-500",
-    iconBg: "bg-white border border-red-100 shadow-sm",
-    status: "missed",
-    accentColor: "red",
-  },
-  {
-    id: "3",
-    name: "Omega-3 Fish Oil",
-    dosage: "1000mg",
-    frequency: "Daily",
-    instruction: "1 Capsule • With Lunch",
-    time: "01:00 PM",
-    icon: "water_drop",
-    iconColor: "text-blue-500",
-    iconBg: "bg-blue-50",
-    status: "upcoming",
-    accentColor: "blue",
-  },
-];
-
-/* ── Mock data (medical tests) ──────────────────────────────── */
-const medicalTests: MedicalTest[] = [
+/* ── Mock data (medical tests — to be DB-backed later) ──────── */
+const mockMedicalTests: MedicalTest[] = [
   {
     id: "t1",
     name: "Complete Blood Count (CBC)",
@@ -104,6 +63,137 @@ export default function MediReminderPage() {
   const [subTab, setSubTab] = useState<"daily" | "inventory" | "history">(
     "daily"
   );
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [missedAlerts, setMissedAlerts] = useState<
+    { medicineId: string; medicineName: string; missedCount: number }[]
+  >([]);
+  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+
+  // ─── Fetch medicines from API ──────────────────────────────
+  const fetchMedicines = useCallback(async () => {
+    try {
+      const res = await fetch("/api/medicines");
+      const data = await res.json();
+      if (data.success) {
+        setMedicines(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch medicines:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMedicines();
+    // Refresh every 30 seconds to update statuses
+    const interval = setInterval(fetchMedicines, 30_000);
+    return () => clearInterval(interval);
+  }, [fetchMedicines]);
+
+  // ─── Dose action handler ───────────────────────────────────
+  const handleDoseAction = useCallback(
+    async (
+      medicineId: string,
+      action: "taken" | "snoozed" | "missed" | "skipped",
+      scheduledTime: string
+    ) => {
+      try {
+        const res = await fetch(`/api/medicines/${medicineId}/dose`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, scheduledTime }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Refresh medicine list to see updated statuses
+          await fetchMedicines();
+          return data;
+        }
+      } catch (err) {
+        console.error("Dose action failed:", err);
+        toast.error("Failed to log dose action");
+      }
+    },
+    [fetchMedicines]
+  );
+
+  // Wrappers for MedicineCard
+  const handleTake = useCallback(
+    (medicineId: string, scheduledTime: string) => {
+      handleDoseAction(medicineId, "taken", scheduledTime);
+      toast.success("Medicine taken!", { icon: "💊" });
+    },
+    [handleDoseAction]
+  );
+
+  const handleSnooze = useCallback(
+    (medicineId: string, scheduledTime: string) => {
+      handleDoseAction(medicineId, "snoozed", scheduledTime);
+      toast("Snoozed for 5 minutes", { icon: "⏰" });
+    },
+    [handleDoseAction]
+  );
+
+  const handleSkip = useCallback(
+    (medicineId: string, scheduledTime: string) => {
+      handleDoseAction(medicineId, "skipped", scheduledTime);
+      toast("Logged as skipped", { icon: "⏭️" });
+    },
+    [handleDoseAction]
+  );
+
+  // Voice reminder dose action (async for the VoiceReminderSystem)
+  const handleVoiceDoseAction = useCallback(
+    async (
+      medicineId: string,
+      action: "taken" | "snoozed" | "missed",
+      scheduledTime: string
+    ) => {
+      await handleDoseAction(medicineId, action, scheduledTime);
+    },
+    [handleDoseAction]
+  );
+
+  // Missed streak callback
+  const handleMissedStreak = useCallback(
+    (medicineId: string, count: number) => {
+      const med = medicines.find((m) => m._id === medicineId);
+      if (!med) return;
+      setMissedAlerts((prev) => {
+        if (prev.some((a) => a.medicineId === medicineId)) return prev;
+        return [
+          ...prev,
+          { medicineId, medicineName: med.name, missedCount: count },
+        ];
+      });
+    },
+    [medicines]
+  );
+
+  // ─── Compute daily progress ─────────────────────────────────
+  const progress: DailyProgress = {
+    taken: medicines.filter((m) => m.status === "taken").length,
+    missed: medicines.filter((m) => m.status === "missed").length,
+    snoozed: medicines.filter((m) => m.status === "snoozed").length,
+    pending: medicines.filter(
+      (m) => m.status === "upcoming" || m.status === "due-soon"
+    ).length,
+    total: medicines.length,
+  };
+
+  // ─── Compute low stock items ────────────────────────────────
+  const lowStock: LowStockItem[] = medicines
+    .filter((m) => m.remainingQuantity <= 5 && m.remainingQuantity > 0)
+    .map((m) => ({
+      name: m.name,
+      daysLeft: m.remainingQuantity,
+      percentLeft: Math.round(
+        (m.remainingQuantity / Math.max(m.totalQuantity, 1)) * 100
+      ),
+    }));
 
   return (
     <main className="flex-1 flex flex-col min-h-0">
@@ -118,30 +208,23 @@ export default function MediReminderPage() {
               Manage your daily medications and tests
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-primary transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-            <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900">Alex Johnson</p>
-                <p className="text-xs text-slate-500">Premium Member</p>
-              </div>
-              <Image
-                alt="User profile picture"
-                className="w-10 h-10 object-cover rounded-full border-2 border-[#D1FAE5]"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO"
-                width={40}
-                height={40}
-              />
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-gray-100 text-sm text-slate-500">
+              <span className="material-symbols-outlined text-lg">
+                calendar_month
+              </span>
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })}
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 bg-[#F8FAFC]">
+      <div className="flex-1 overflow-y-auto p-6 pb-28 bg-[#F8FAFC]">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
           {/* Left — Main content */}
           <div className="flex-1 flex flex-col gap-6">
@@ -151,29 +234,99 @@ export default function MediReminderPage() {
             {/* Sub-tab bar */}
             <SubTabBar activeTab={subTab} onTabChange={setSubTab} />
 
-            {/* Cards list */}
-            <div className="grid grid-cols-1 gap-6">
-              {mainTab === "medicines"
-                ? medicines.map((med) => (
-                    <MedicineCard key={med.id} medicine={med} />
+            {/* Medicine cards */}
+            {mainTab === "medicines" && (
+              <div className="grid grid-cols-1 gap-6">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4">
+                    <span className="animate-spin h-8 w-8 border-3 border-primary border-t-transparent rounded-full" />
+                    <p className="text-sm text-slate-400">
+                      Loading medicines...
+                    </p>
+                  </div>
+                ) : medicines.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+                    <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-4xl text-primary/40">
+                        medication
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-700">
+                        No medicines yet
+                      </h3>
+                      <p className="text-sm text-slate-400 mt-1 max-w-sm">
+                        Tap the + button to scan a prescription or add medicines
+                        manually
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  medicines.map((med) => (
+                    <MedicineCard
+                      key={med._id}
+                      medicine={med}
+                      onTake={handleTake}
+                      onSnooze={handleSnooze}
+                      onSkip={handleSkip}
+                      onEdit={setEditingMedicine}
+                    />
                   ))
-                : medicalTests.map((test) => (
-                    <MedicalTestCard key={test.id} test={test} />
-                  ))}
-            </div>
+                )}
+              </div>
+            )}
+
+            {/* Medical tests (still mock for now) */}
+            {mainTab === "tests" && (
+              <div className="grid grid-cols-1 gap-6">
+                {mockMedicalTests.map((test) => (
+                  <MedicalTestCard key={test.id} test={test} />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right sidebar */}
           <aside className="w-full lg:w-80 flex flex-col gap-6">
-            <AudioAlertToggle />
-            <DailyProgressWidget />
-            <LowStockAlert />
+            <AudioAlertToggle
+              enabled={audioEnabled}
+              onToggle={setAudioEnabled}
+            />
+            <DailyProgressWidget progress={progress} />
+            {lowStock.length > 0 && <LowStockAlert items={lowStock} />}
           </aside>
         </div>
       </div>
 
-      {/* FAB — scan prescription via OCR */}
-      <AddMedicineFAB userId="demo-user" />
+      {/* Voice Reminder System (invisible — runs in background) */}
+      <VoiceReminderSystem
+        medicines={medicines}
+        audioEnabled={audioEnabled}
+        onDoseAction={handleVoiceDoseAction}
+        onMissedStreak={handleMissedStreak}
+      />
+
+      {/* Missed Alarm Alerts */}
+      <MissedAlarmAlert
+        alerts={missedAlerts}
+        onDismiss={(id) =>
+          setMissedAlerts((prev) =>
+            prev.filter((a) => a.medicineId !== id)
+          )
+        }
+      />
+
+      {/* FAB — scan prescription via OCR / manual add */}
+      <AddMedicineFAB onRefresh={fetchMedicines} />
+
+      {/* Edit medicine modal */}
+      {editingMedicine && (
+        <EditMedicineModal
+          medicine={editingMedicine}
+          onClose={() => setEditingMedicine(null)}
+          onSaved={fetchMedicines}
+        />
+      )}
     </main>
   );
 }
