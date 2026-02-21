@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Brain,
   Smile,
@@ -14,8 +14,10 @@ import {
   Calendar,
   MessageCircle,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import MentalHealthQuestionnaire from "./MentalHealthQuestionnaire";
 
 type Mood = "great" | "good" | "okay" | "low" | "bad";
 
@@ -62,6 +64,46 @@ const wellnessTips = [
 
 export default function MentalHealthContent() {
   const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
+  const [checkingQuestionnaire, setCheckingQuestionnaire] = useState(true);
+  const [questionnaireCompleted, setQuestionnaireCompleted] = useState(false);
+
+  const checkQuestionnaire = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mental-health/questionnaire");
+      const data = await res.json();
+      setQuestionnaireCompleted(!!data.completed);
+    } catch {
+      // If fetch fails, assume not completed to be safe
+      setQuestionnaireCompleted(false);
+    } finally {
+      setCheckingQuestionnaire(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkQuestionnaire();
+  }, [checkQuestionnaire]);
+
+  // Loading state while checking
+  if (checkingQuestionnaire) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-[#64748B]">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // First-time user → show questionnaire
+  if (!questionnaireCompleted) {
+    return (
+      <MentalHealthQuestionnaire
+        onComplete={() => setQuestionnaireCompleted(true)}
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
