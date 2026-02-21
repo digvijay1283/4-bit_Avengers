@@ -14,7 +14,6 @@ import {
   getOrCreateSession,
   registerSSEController,
   deregisterSSEController,
-  pushSSEMessage,
 } from "@/lib/chatSessions";
 
 // Prevent Next.js from statically caching this route
@@ -23,11 +22,9 @@ export const dynamic = "force-dynamic";
 const encoder = new TextEncoder();
 
 export async function GET(request: Request) {
-  // ── Auth guard ───────────────────────────────────────────────────────────
   const authUser = await getAuthUser();
-  if (!authUser) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const resolvedUserId = authUser?.userId ?? "anonymous";
+  const resolvedUserName = authUser?.fullName ?? "there";
 
   // ── Session ID from query param ──────────────────────────────────────────
   const { searchParams } = new URL(request.url);
@@ -39,7 +36,7 @@ export async function GET(request: Request) {
 
   // Ensure the session exists (ChatWindow creates it on first POST, but the
   // SSE stream may open before the first message, so we pre-create it here)
-  getOrCreateSession(sessionId, authUser.userId, authUser.fullName ?? "there");
+  getOrCreateSession(sessionId, resolvedUserId, resolvedUserName);
 
   // ── Build the SSE ReadableStream ─────────────────────────────────────────
   const stream = new ReadableStream<Uint8Array>({

@@ -14,9 +14,6 @@
 
 import { getRandomProactiveMessage, type ProactiveMessage } from "./proactiveMessages";
 
-// Number of normal user↔bot exchanges before bot turns proactive
-export const PROACTIVE_THRESHOLD = 2;
-
 // Proactive message fires 5–10 seconds after the preceding bot response
 const MIN_DELAY_MS = 5_000;
 const MAX_DELAY_MS = 10_000;
@@ -45,6 +42,9 @@ export interface ChatSession {
 
   /** Unix ms of the last user message — used for the corner-case guard */
   userLastActiveAt: number;
+
+  /** True once a proactive message is sent; reset on next user message */
+  waitingForUserAfterProactive: boolean;
 }
 
 // ── Session Map ──────────────────────────────────────────────────────────────
@@ -68,6 +68,7 @@ export function getOrCreateSession(
       sseController: null,
       sentProactiveIds: [],
       userLastActiveAt: Date.now(),
+      waitingForUserAfterProactive: false,
     });
   }
   return sessions.get(sessionId)!;
@@ -113,16 +114,16 @@ export function cancelProactiveTimer(sessionId: string): void {
  * Schedule a proactive push after a random 5–10 s delay.
  * Won't schedule if:
  *   - session doesn't exist
- *   - interactionCount hasn't hit PROACTIVE_THRESHOLD yet
  *   - a timer is already pending
  *   - there's no live SSE controller
+ *   - we're still waiting for user reply after a previous proactive push
  */
 export function scheduleProactiveMessage(sessionId: string): void {
   const session = sessions.get(sessionId);
   if (!session) return;
-  if (session.interactionCount < PROACTIVE_THRESHOLD) return;
   if (session.pendingTimerId !== null) return; // already scheduled
   if (!session.sseController) return; // nobody listening
+  if (session.waitingForUserAfterProactive) return;
 
   const delay = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
 
@@ -133,6 +134,7 @@ export function scheduleProactiveMessage(sessionId: string): void {
 
     // If controller went away while waiting, abort silently
     if (!session.sseController) return;
+    if (session.waitingForUserAfterProactive) return;
 
     const msg = getRandomProactiveMessage(session.sentProactiveIds);
 
@@ -145,8 +147,7 @@ export function scheduleProactiveMessage(sessionId: string): void {
       message: msg,
     });
 
-    // Schedule the NEXT proactive message after this one
-    scheduleProactiveMessage(sessionId);
+    session.waitingForUserAfterProactive = true;
   }, delay);
 }
 
