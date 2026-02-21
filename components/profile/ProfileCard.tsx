@@ -26,13 +26,24 @@ export default function ProfileCard({
 
       {/* Avatar */}
       <div className="relative z-10 w-28 h-28 p-1 bg-white rounded-full mb-4 mt-6 shadow-md">
-        <Image
-          alt={name}
-          src={avatarUrl}
-          width={112}
-          height={112}
-          className="w-full h-full object-cover rounded-full"
-        />
+        {avatarUrl ? (
+          <Image
+            alt={name}
+            src={avatarUrl}
+            width={112}
+            height={112}
+            className="w-full h-full object-cover rounded-full"
+          />
+        ) : (
+          <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
+            {name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2)}
+          </div>
+        )}
         <button className="absolute bottom-1 right-1 bg-slate-900 text-white p-1.5 rounded-full hover:bg-primary transition-colors">
           <span className="material-symbols-outlined text-xs">edit</span>
         </button>

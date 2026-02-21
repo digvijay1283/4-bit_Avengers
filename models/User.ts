@@ -9,8 +9,17 @@ export interface IUser extends Document {
   passwordHash: string;          // always stored; select: false keeps it hidden
   avatarUrl?: string;
   phone?: string;
+  gender?: string;
+  dateOfBirth?: Date;
+  address?: string;
+  bloodType?: string;
+  weight?: string;               // e.g. "75kg"
+  height?: string;               // e.g. "182cm"
   emergencyContactName?: string;
   emergencyContactPhone?: string;
+  // Doctor-specific fields
+  specialization?: string;
+  licenseNumber?: string;
   role: "user" | "doctor" | "admin";
   status: "active" | "inactive";
   lastLoginAt?: Date;
@@ -36,8 +45,17 @@ const userSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true, select: false },
     avatarUrl: { type: String, trim: true },
     phone: { type: String, trim: true },
+    gender: { type: String, trim: true },
+    dateOfBirth: { type: Date },
+    address: { type: String, trim: true },
+    bloodType: { type: String, trim: true },
+    weight: { type: String, trim: true },
+    height: { type: String, trim: true },
     emergencyContactName: { type: String, trim: true },
     emergencyContactPhone: { type: String, trim: true },
+    // Doctor-specific
+    specialization: { type: String, trim: true },
+    licenseNumber: { type: String, trim: true },
     role: { type: String, enum: ["user", "doctor", "admin"], default: "user" },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     lastLoginAt: { type: Date },

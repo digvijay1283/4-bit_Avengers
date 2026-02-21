@@ -13,6 +13,8 @@ export async function POST(request: Request) {
       role?: "user" | "doctor";
       emergencyContactName?: string;
       emergencyContactPhone?: string;
+      specialization?: string;
+      licenseNumber?: string;
     };
 
     const fullName = body.fullName?.trim();
@@ -24,6 +26,8 @@ export async function POST(request: Request) {
       role === "doctor" ? "admin" : "user";
     const emergencyContactName = body.emergencyContactName?.trim() || undefined;
     const emergencyContactPhone = body.emergencyContactPhone?.trim() || undefined;
+    const specialization = body.specialization?.trim() || undefined;
+    const licenseNumber = body.licenseNumber?.trim() || undefined;
 
     if (!fullName || !email || !password) {
       return NextResponse.json(
@@ -65,6 +69,8 @@ export async function POST(request: Request) {
       role: roleForPersistence,
       ...(emergencyContactName && { emergencyContactName }),
       ...(emergencyContactPhone && { emergencyContactPhone }),
+      ...(specialization && { specialization }),
+      ...(licenseNumber && { licenseNumber }),
     });
 
     const normalizedRole: "user" | "doctor" =
