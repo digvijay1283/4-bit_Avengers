@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       sub: created.userId,
       email: created.email,
       role: normalizedRole,
+      fullName: created.fullName,
     });
 
     const response = NextResponse.json(

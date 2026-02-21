@@ -8,5 +8,14 @@ export async function GET() {
     return NextResponse.json({ ok: true, authenticated: false, user: null });
   }
 
-  return NextResponse.json({ ok: true, authenticated: true, user });
+  return NextResponse.json({
+    ok: true,
+    authenticated: true,
+    user: {
+      userId: user.userId,
+      email: user.email,
+      role: user.role,
+      fullName: user.fullName,
+    },
+  });
 }

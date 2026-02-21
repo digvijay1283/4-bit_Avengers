@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VitalAI Desktop Profile Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#106534",
+                "background-light": "#F8FAFC",
+                "background-dark": "#122018",
+                "slate-dark": "#1E293B",
+                "soft-mint": "#D1FAE5",
+                },
+                fontFamily: {
+                "display": ["Manrope", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+            },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        body {
+            min-height: 100vh;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-dark dark:text-slate-100 antialiased overflow-hidden h-screen flex">
+<aside class="w-20 lg:w-64 bg-white dark:bg-slate-800 border-r border-gray-100 dark:border-gray-700 flex-col justify-between hidden md:flex h-full fixed lg:relative z-20">
+<div>
+<div class="h-20 flex items-center justify-center lg:justify-start lg:px-6 gap-2 border-b border-gray-100 dark:border-gray-700">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">vital_signs</span>
+</div>
+<span class="text-xl font-bold tracking-tight text-slate-dark dark:text-white hidden lg:block">VitalAI</span>
+</div>
+<nav class="p-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-semibold text-sm hidden lg:block">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-semibold text-sm hidden lg:block">Appointments</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-semibold text-sm hidden lg:block">Reminders</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-primary hover:bg-soft-mint/30 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-semibold text-sm hidden lg:block">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 text-primary bg-soft-mint/50 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-bold text-sm hidden lg:block">Profile</span>
+</a>
+</nav>
+</div>
+<div class="p-4 border-t border-gray-100 dark:border-gray-700">
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all group" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-semibold text-sm hidden lg:block">Logout</span>
+</a>
+</div>
+</aside>
+<main class="flex-1 h-full overflow-y-auto overflow-x-hidden p-4 lg:p-8 ml-0">
+<header class="flex justify-between items-center mb-8">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-slate-500">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Profile Dashboard</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined text-lg">search</span>
+<input class="pl-10 pr-4 py-2 rounded-full bg-white border-none text-sm w-64 focus:ring-2 focus:ring-primary/20 shadow-sm" placeholder="Search..." type="text"/>
+</div>
+<button class="bg-white p-2 rounded-full text-slate-500 hover:text-primary shadow-sm relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<div class="flex items-center gap-2 bg-white px-2 py-1.5 rounded-full shadow-sm pr-4">
+<img alt="User" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO"/>
+<span class="text-sm font-bold text-slate-700 hidden sm:block">Alex J.</span>
+</div>
+</div>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-20">
+<div class="lg:col-span-3 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary/10 to-soft-mint/30 z-0"></div>
+<div class="relative z-10 w-28 h-28 p-1 bg-white rounded-full mb-4 mt-6 shadow-md">
+<img alt="Alex Johnson" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO"/>
+<button class="absolute bottom-1 right-1 bg-slate-900 text-white p-1.5 rounded-full hover:bg-primary transition-colors">
+<span class="material-symbols-outlined text-xs">edit</span>
+</button>
+</div>
+<h2 class="text-xl font-bold text-slate-900 dark:text-white relative z-10">Alex Johnson</h2>
+<div class="flex items-center gap-1 mt-1 mb-6 relative z-10">
+<span class="material-symbols-outlined text-primary text-sm">verified</span>
+<span class="text-xs font-semibold text-primary bg-soft-mint px-2 py-0.5 rounded-full">Premium Member</span>
+</div>
+<div class="flex w-full justify-between px-4 py-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+<div class="text-center">
+<p class="text-xs text-slate-500 mb-1">Weight</p>
+<p class="font-bold text-slate-900 dark:text-white">75kg</p>
+</div>
+<div class="w-px bg-slate-200 dark:bg-slate-600"></div>
+<div class="text-center">
+<p class="text-xs text-slate-500 mb-1">Height</p>
+<p class="font-bold text-slate-900 dark:text-white">182cm</p>
+</div>
+<div class="w-px bg-slate-200 dark:bg-slate-600"></div>
+<div class="text-center">
+<p class="text-xs text-slate-500 mb-1">Age</p>
+<p class="font-bold text-slate-900 dark:text-white">28</p>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex-1">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white">Personal Information</h3>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="space-y-5">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<p class="text-xs text-slate-500 font-medium">Gender</p>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Male</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-slate-500 font-medium">Email</p>
+<p class="text-sm font-bold text-slate-900 dark:text-white truncate">alex.j@vitalai.com</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">call</span>
+</div>
+<div class="flex-1">
+<p class="text-xs text-slate-500 font-medium">Phone</p>
+<p class="text-sm font-bold text-slate-900 dark:text-white">+1 (555) 012-3456</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div class="flex-1">
+<p class="text-xs text-slate-500 font-medium">Address</p>
+<p class="text-sm font-bold text-slate-900 dark:text-white">2464 Royal Ln. Mesa</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+<span class="material-symbols-outlined">bloodtype</span>
+</div>
+<div class="flex-1">
+<p class="text-xs text-slate-500 font-medium">Blood Type</p>
+<p class="text-sm font-bold text-slate-900 dark:text-white">O+</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-6 flex flex-col gap-6">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="bg-gradient-to-br from-primary to-[#0f542b] p-5 rounded-2xl text-white shadow-md relative overflow-hidden group">
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-110 transition-transform duration-500"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-3 opacity-90">
+<span class="material-symbols-outlined">ecg_heart</span>
+<span class="text-xs font-semibold">Health Score</span>
+</div>
+<div class="flex items-end gap-2">
+<span class="text-3xl font-bold">88</span>
+<span class="text-xs mb-1 opacity-70">/100</span>
+</div>
+<p class="text-[10px] mt-2 bg-white/20 inline-block px-2 py-0.5 rounded-full">Excellent</p>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-2 mb-2 text-slate-500">
+<div class="p-1.5 bg-orange-100 rounded-md text-orange-500">
+<span class="material-symbols-outlined text-lg">medication</span>
+</div>
+<span class="text-xs font-semibold">Active Meds</span>
+</div>
+<div>
+<span class="text-3xl font-bold text-slate-900 dark:text-white">3</span>
+<span class="text-xs text-slate-400 ml-1">daily</span>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between group hover:shadow-md transition-shadow">
+<div class="flex items-center gap-2 mb-2 text-slate-500">
+<div class="p-1.5 bg-blue-100 rounded-md text-blue-500">
+<span class="material-symbols-outlined text-lg">medical_services</span>
+</div>
+<span class="text-xs font-semibold">Consultations</span>
+</div>
+<div>
+<span class="text-3xl font-bold text-slate-900 dark:text-white">12</span>
+<span class="text-xs text-slate-400 ml-1">total</span>
+</div>
+</div>
+</div>
+<div class="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 flex-1 border border-gray-200 dark:border-gray-700 relative">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white">Daily Routine</h3>
+<div class="flex gap-2">
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-700 shadow-sm text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-white dark:bg-slate-700 shadow-sm text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="space-y-4 relative">
+<div class="absolute left-[19px] top-6 bottom-6 w-0.5 bg-gray-200 dark:bg-gray-600 z-0"></div>
+<div class="relative z-10 grid grid-cols-[auto_1fr] gap-4">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-green-100 border-4 border-white dark:border-slate-800 flex items-center justify-center text-green-600 shadow-sm">
+<span class="material-symbols-outlined text-sm">check</span>
+</div>
+</div>
+<div class="glass-card bg-white/60 p-4 rounded-xl shadow-sm border border-gray-100 hover:bg-white transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="font-bold text-slate-900 dark:text-white text-sm">08:00 AM</span>
+<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200">Done</span>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white mb-1">Morning Vitals Check</h4>
+<p class="text-xs text-slate-500">Blood Pressure, Heart Rate</p>
+</div>
+</div>
+<div class="relative z-10 grid grid-cols-[auto_1fr] gap-4">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-white border-4 border-white dark:border-slate-800 flex items-center justify-center text-slate-400 shadow-sm">
+<span class="material-symbols-outlined text-sm">schedule</span>
+</div>
+</div>
+<div class="glass-card bg-white/60 p-4 rounded-xl shadow-sm border border-gray-100 hover:bg-white transition-colors">
+<div class="flex justify-between items-start mb-2">
+<span class="font-bold text-slate-900 dark:text-white text-sm">09:30 AM</span>
+<span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-orange-200">Pending</span>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white mb-1">Medicine: Vitamin D</h4>
+<p class="text-xs text-slate-500">1 Tablet, after breakfast</p>
+<div class="mt-3 flex gap-2">
+<button class="bg-primary text-white text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors">Confirm</button>
+<button class="bg-white border border-gray-200 text-slate-500 text-xs px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-50 transition-colors">Snooze</button>
+</div>
+</div>
+</div>
+<div class="relative z-10 grid grid-cols-[auto_1fr] gap-4">
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 rounded-full bg-white border-4 border-white dark:border-slate-800 flex items-center justify-center text-slate-400 shadow-sm">
+<span class="material-symbols-outlined text-sm">schedule</span>
+</div>
+</div>
+<div class="glass-card bg-white/60 p-4 rounded-xl shadow-sm border border-gray-100 hover:bg-white transition-colors opacity-70">
+<div class="flex justify-between items-start mb-2">
+<span class="font-bold text-slate-900 dark:text-white text-sm">05:00 PM</span>
+<span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">Upcoming</span>
+</div>
+<h4 class="font-bold text-slate-800 dark:text-white mb-1">Afternoon Walk</h4>
+<p class="text-xs text-slate-500">Target: 30 minutes</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="lg:col-span-3 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white mb-4">Upcoming</h3>
+<div class="flex flex-col gap-4">
+<div class="p-3 bg-soft-mint/30 rounded-xl border border-soft-mint/50">
+<div class="flex gap-3 items-center mb-2">
+<img alt="Dr" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBY2P47bYfNCnwgAKMVJsQzWG_qL9J_ht8EYQZpehDR38u5_VLEAk83Ssc_vaElU7cC-KL3dFJP4lprAHpTgWKoBQ2rn2InmGPYQP-3MIIuBoVNHyL57RSUFVzsWW8FmuHhRNA3sqsbqER_KaLyKOeZF7beoojCKWEh660mbK5927nPsYo63uvleZ62aplE4PVGQ78eXs7tOJt8UlnHnnMxdYCCWUGV5uGdfkkaubn4I_WF65qCPa72b0c12GDbEjvJkBkXsbsNAWNL"/>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Dr. Sarah J.</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-wide">Cardiologist</p>
+</div>
+</div>
+<div class="flex justify-between items-center text-xs mt-2 pt-2 border-t border-soft-mint/30">
+<div class="flex items-center gap-1 text-slate-600">
+<span class="material-symbols-outlined text-sm">event</span>
+<span>Oct 24</span>
+</div>
+<div class="flex items-center gap-1 text-primary font-semibold">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>09:00 AM</span>
+</div>
+</div>
+</div>
+<div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-700">
+<div class="flex gap-3 items-center mb-2">
+<img alt="Dr" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXULu1dDQAkx9YP9E7VZUtu7h1hAVYTAs3nE5gefv60sxWPfBaLeDenaqMWgtcQW04Yqca6xiUPhTSo0rOtVPn98DCq3wjVjZfVypcex-Pw4u72WEz2kyG--odTQpTpt0ijD5LimywUxTbwD9rsDauuUjoqZhiSO6IURoSc0UJs1EIWW1AczBUC7LYkvvzCph_G3zXiyiJUwrvh6McQT99iMszzkvFVn1zeI8Ctxqt7lLuxoCLxDT_A5o7oX4dWx3ebuOTzl5VvpU_"/>
+<div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Dr. Mark Chen</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-wide">Neurologist</p>
+</div>
+</div>
+<div class="flex justify-between items-center text-xs mt-2 pt-2 border-t border-slate-200 dark:border-slate-600">
+<div class="flex items-center gap-1 text-slate-600">
+<span class="material-symbols-outlined text-sm">event</span>
+<span>Oct 28</span>
+</div>
+<div class="flex items-center gap-1 text-slate-600 font-semibold">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>02:30 PM</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex-1">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-lg text-slate-900 dark:text-white">Quick Book</h3>
+<span class="text-xs text-primary font-semibold cursor-pointer">View All</span>
+</div>
+<p class="text-xs text-slate-500 mb-4">Available slots for Dr. Sarah J.</p>
+<div class="grid grid-cols-2 gap-2">
+<button class="text-xs py-2 px-1 border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed bg-slate-50">09:00 AM</button>
+<button class="text-xs py-2 px-1 border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed bg-slate-50">09:30 AM</button>
+<button class="text-xs py-2 px-1 border border-primary text-primary bg-soft-mint/20 rounded-lg font-semibold hover:bg-soft-mint transition-colors">10:00 AM</button>
+<button class="text-xs py-2 px-1 border border-primary text-primary bg-soft-mint/20 rounded-lg font-semibold hover:bg-soft-mint transition-colors">10:30 AM</button>
+<button class="text-xs py-2 px-1 border border-slate-200 rounded-lg text-slate-600 hover:border-primary hover:text-primary transition-colors">11:00 AM</button>
+<button class="text-xs py-2 px-1 border border-slate-200 rounded-lg text-slate-600 hover:border-primary hover:text-primary transition-colors">11:30 AM</button>
+</div>
+<button class="w-full mt-6 bg-primary text-white py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all hover:bg-primary/90 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">add_circle</span>
+                        Book New Appointment
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-gray-700 pb-safe pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+<div class="flex justify-between items-end pb-3">
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</a>
+<div class="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white dark:border-slate-800">
+<span class="material-symbols-outlined text-white">add</span>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="text-[10px] font-medium">Appt</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</div>
+
+</body></html>

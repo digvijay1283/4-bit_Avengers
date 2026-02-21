@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWorker } from 'tesseract.js';
-import dbConnect from '@/lib/mongodb';
+import { dbConnect } from '@/lib/mongodb';
 import Medicine from '@/lib/models/Medicine';
 
 function parsePrescriptionText(rawText: string) {
