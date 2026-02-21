@@ -4,9 +4,9 @@
  * Handles a user message and returns the bot's response.
  * Integrates with the proactive-session system:
  *   1. Cancels any pending proactive timer (user beat the bot — corner case)
- *   2. Increments the session interaction count
+ *   2. Marks user as active and clears "waiting for reply" gate
  *   3. Returns the bot response (webhook if configured, fallback otherwise)
- *   4. Schedules next proactive message once interactionCount ≥ threshold
+ *   4. Schedules one proactive message (5–10s delay), then waits for user reply
  */
 
 import { NextResponse } from "next/server";
@@ -16,7 +16,6 @@ import {
   getOrCreateSession,
   cancelProactiveTimer,
   scheduleProactiveMessage,
-  PROACTIVE_THRESHOLD,
 } from "@/lib/chatSessions";
 
 // ── Fallback responses (used when CHATBOT_WEBHOOK_URL is not configured) ─────
@@ -105,6 +104,7 @@ export async function POST(request: Request) {
 
     session.userLastActiveAt = Date.now();
     session.interactionCount += 1;
+    session.waitingForUserAfterProactive = false;
 
     // ── Get bot response ───────────────────────────────────────────────────
     let output = "";
@@ -134,10 +134,8 @@ export async function POST(request: Request) {
       output = getFallbackResponse(userChat);
     }
 
-    // ── Schedule proactive message after threshold reached ─────────────────
-    if (session.interactionCount >= PROACTIVE_THRESHOLD) {
-      scheduleProactiveMessage(sessionId);
-    }
+    // ── Schedule a single proactive message after each bot response ────────
+    scheduleProactiveMessage(sessionId);
 
     return NextResponse.json(
       { ok: true, chatId, sessionId, output },

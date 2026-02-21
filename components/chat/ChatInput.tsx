@@ -40,11 +40,12 @@ declare global {
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
 type MicState = "idle" | "listening" | "unsupported";
 
-export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [micState, setMicState] = useState<MicState>("idle");
   const [interimText, setInterimText] = useState("");
@@ -207,7 +208,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
             setValue(e.target.value);
           }}
           onKeyDown={handleKeyDown}
-          placeholder={isListening ? "Listening…" : "Type or speak a message…"}
+          placeholder={isListening ? "Listening…" : (placeholder ?? "Type or speak a message…")}
           disabled={disabled}
           className={[
             "max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border px-4 py-3 text-sm text-[#0F172A] outline-none transition",
