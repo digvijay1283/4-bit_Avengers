@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, type FormEvent } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ChatMessage, { type Message } from "./ChatMessage";
 import ChatInput from "./ChatInput";
+import VoiceModeOverlay from "./VoiceModeOverlay";
 import { randomUUID } from "@/lib/uuid";
 
 interface ChatWindowProps {
@@ -18,6 +19,7 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     },
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const [chatId] = useState(() => randomUUID());
   const [sessionId] = useState(() => randomUUID());
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -27,57 +29,66 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleSend(text: string) {
-    const userMsg: Message = {
-      id: randomUUID(),
-      role: "user",
-      content: text,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chatId,
-          sessionId,
-          userId,
-          userChat: text,
-        }),
-      });
-
-      const payload = (await res.json()) as {
-        ok: boolean;
-        output?: string;
-        message?: string;
-      };
-
-      const botMsg: Message = {
+  /** Core send logic — returns the assistant reply text. */
+  const coreSend = useCallback(
+    async (text: string): Promise<string> => {
+      const userMsg: Message = {
         id: randomUUID(),
-        role: "assistant",
-        content:
+        role: "user",
+        content: text,
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chatId, sessionId, userId, userChat: text }),
+        });
+
+        const payload = (await res.json()) as {
+          ok: boolean;
+          output?: string;
+          message?: string;
+        };
+
+        const reply =
           payload.ok && payload.output
             ? payload.output
-            : payload.message ?? "Sorry, something went wrong.",
-      };
+            : payload.message ?? "Sorry, something went wrong.";
 
-      setMessages((prev) => [...prev, botMsg]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
+        const botMsg: Message = {
           id: randomUUID(),
           role: "assistant",
-          content: "Network error. Please try again.",
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+          content: reply,
+        };
+        setMessages((prev) => [...prev, botMsg]);
+        return reply;
+      } catch {
+        const fallback = "Network error. Please try again.";
+        setMessages((prev) => [
+          ...prev,
+          { id: randomUUID(), role: "assistant", content: fallback },
+        ]);
+        return fallback;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [chatId, sessionId, userId],
+  );
+
+  /** Keyboard / text-based send (fire-and-forget). */
+  async function handleSend(text: string) {
+    await coreSend(text);
   }
+
+  /** Voice mode: send + return the assistant reply so TTS can speak it. */
+  const handleVoiceSend = useCallback(
+    async (text: string): Promise<string> => coreSend(text),
+    [coreSend],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -104,9 +115,21 @@ export default function ChatWindow({ userId }: ChatWindowProps) {
       {/* Input area */}
       <div className="shrink-0 border-t border-[#E2E8F0] bg-white px-4 py-3">
         <div className="mx-auto max-w-2xl">
-          <ChatInput onSend={handleSend} disabled={isLoading} />
+          <ChatInput
+            onSend={handleSend}
+            disabled={isLoading}
+            onEnterVoiceMode={() => setVoiceMode(true)}
+          />
         </div>
       </div>
+
+      {/* Voice mode overlay */}
+      {voiceMode && (
+        <VoiceModeOverlay
+          onSendAndGetReply={handleVoiceSend}
+          onClose={() => setVoiceMode(false)}
+        />
+      )}
     </div>
   );
 }

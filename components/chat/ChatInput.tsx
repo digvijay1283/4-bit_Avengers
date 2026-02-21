@@ -8,7 +8,7 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
-import { Mic, MicOff, Send } from "lucide-react";
+import { Mic, MicOff, Send, AudioLines } from "lucide-react";
 
 // ── Browser SpeechRecognition type shim ──────────────────────────────────────
 interface SpeechRecognitionEvent extends Event {
@@ -40,11 +40,13 @@ declare global {
 interface ChatInputProps {
   onSend: (text: string) => void;
   disabled?: boolean;
+  /** Callback to enter full voice-conversation mode. */
+  onEnterVoiceMode?: () => void;
 }
 
 type MicState = "idle" | "listening" | "unsupported";
 
-export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled, onEnterVoiceMode }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [micState, setMicState] = useState<MicState>("idle");
   const [interimText, setInterimText] = useState("");
@@ -172,6 +174,24 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       )}
 
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        {/* Voice mode button */}
+        {micState !== "unsupported" && onEnterVoiceMode && (
+          <button
+            type="button"
+            onClick={onEnterVoiceMode}
+            disabled={disabled}
+            aria-label="Enter voice conversation mode"
+            title="Voice mode — hands-free conversation"
+            className={[
+              "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition",
+              "bg-gradient-to-br from-[#106534] to-[#22C55E] text-white shadow-sm hover:shadow-md hover:scale-105",
+              disabled ? "opacity-40 pointer-events-none" : "",
+            ].join(" ")}
+          >
+            <AudioLines className="h-5 w-5" />
+          </button>
+        )}
+
         {/* Microphone button */}
         {micState !== "unsupported" && (
           <button
