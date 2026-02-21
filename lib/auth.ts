@@ -10,7 +10,7 @@ const JWT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
 export type AuthTokenPayload = JwtPayload & {
   sub: string;
   email: string;
-  role: "user" | "admin";
+  role: "user" | "doctor";
 };
 
 // ─── Password helpers ────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ const VERIFY_OPTIONS: jwt.VerifyOptions = {
 export function signAuthToken(payload: {
   sub: string;
   email: string;
-  role: "user" | "admin";
+  role: "user" | "doctor";
 }): string {
   return jwt.sign(payload, JWT_SECRET, SIGN_OPTIONS);
 }
