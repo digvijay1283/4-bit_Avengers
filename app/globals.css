@@ -1,26 +1,25 @@
 @import "tailwindcss";
 
+/* ─── Force light-only: override Tailwind's dark variant to class-based ── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Lock color-scheme to light even when OS is dark */
+:root {
+  color-scheme: light only;
+}
+
 /* ─── CSS Custom Properties (design tokens) ────────────────────────── */
 @layer base {
   :root {
-    --color-background: #ffffff;
-    --color-foreground: #0a0a0a;
-    --color-primary: #6366f1;
+    --color-background: #F8FAFC;
+    --color-foreground: #1E293B;
+    --color-primary: #106534;
     --color-primary-foreground: #ffffff;
-    --color-muted: #f4f4f5;
-    --color-muted-foreground: #71717a;
-    --color-border: #e4e4e7;
+    --color-muted: #f1f5f9;
+    --color-muted-foreground: #64748b;
+    --color-border: #e2e8f0;
+    --color-soft-mint: #D1FAE5;
     --radius: 0.5rem;
-  }
-
-  .dark {
-    --color-background: #0a0a0a;
-    --color-foreground: #fafafa;
-    --color-primary: #818cf8;
-    --color-primary-foreground: #1e1b4b;
-    --color-muted: #27272a;
-    --color-muted-foreground: #a1a1aa;
-    --color-border: #27272a;
   }
 
   *,
@@ -38,4 +37,31 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+/* ─── Custom Utilities ─────────────────────────────────────────────── */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* ─── Tailwind v4 theme overrides ──────────────────────────────────── */
+@theme {
+  --color-primary: #106534;
+  --color-primary-foreground: #ffffff;
+  --color-soft-mint: #D1FAE5;
+  --color-background-light: #F8FAFC;
+  --color-background-dark: #122018;
+  --color-slate-dark: #1E293B;
 }

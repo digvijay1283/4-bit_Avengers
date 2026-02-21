@@ -3,16 +3,14 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* ─── Images ─────────────────────────────────────────────────────── */
   images: {
-    // Add external domains here if you use next/image with remote URLs
-    // domains: ["example.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
+    ],
   },
-
-  /* ─── Redirects / Rewrites (uncomment as needed) ─────────────────── */
-  // async redirects() { return []; },
-  // async rewrites()  { return []; },
-
-  /* ─── Environment (expose only public vars here) ─────────────────── */
-  // env: {},
 };
 
 export default nextConfig;

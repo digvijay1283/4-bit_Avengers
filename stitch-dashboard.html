@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Leafcare AI Health Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#106534",
+                "background-light": "#F8FAFC",
+                "background-dark": "#122018",
+                "slate-dark": "#1E293B",
+                "soft-mint": "#D1FAE5",
+                },
+                fontFamily: {
+                "display": ["Manrope", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+            },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for horizontal scrolling sections */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-dark dark:text-slate-100 antialiased overflow-x-hidden">
+<!-- Sticky Header -->
+<header class="sticky top-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between items-center h-16">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<div class="text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">local_florist</span>
+</div>
+<span class="text-xl font-bold tracking-tight text-slate-dark dark:text-white hidden sm:block">Leafcare</span>
+</div>
+<!-- Desktop Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex gap-8">
+<a class="text-slate-600 hover:text-primary font-semibold text-sm transition-colors" href="#">Home</a>
+<a class="text-primary font-bold text-sm" href="#">Dashboard</a>
+<a class="text-slate-600 hover:text-primary font-semibold text-sm transition-colors" href="#">Profile</a>
+<a class="text-slate-600 hover:text-primary font-semibold text-sm transition-colors" href="#">Reports</a>
+</nav>
+<!-- CTA -->
+<button class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm hover:shadow-md">
+                    Try for free
+                </button>
+</div>
+</div>
+</header>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Main Content Area (Left 75% on Desktop) -->
+<main class="w-full lg:w-3/4 flex flex-col gap-8">
+<!-- Hero Section -->
+<div class="relative w-full rounded-2xl overflow-hidden min-h-[300px] flex items-center bg-cover bg-center shadow-lg group" data-alt="Doctor holding a digital tablet in a modern medical office" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDGQd4jDSuSro3i2WFfIqEQtTOIMCSbE9pbUgH8JGZZFD8QVWotVOvia7sp5UctZWC3FZrDREpKnyYeFt4hHQzpBudKCh1BeEP__YHdjq4lYZ0vLEiR6S4NM53JJhqYV5FxOGKksOgxv_iCpA2r8TfEOK2BIJfvLkJasmgGT2aHU2QgVDyOFeBUDmKmftvCpccCbbsFv24efMGfz6j-iiiPWuDqoNE-Bq7--jVh1EO9wG4AhQohMAScLY6RgcQpRFYRmwl6VcW4n1-n');">
+<!-- Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/40"></div>
+<div class="relative z-10 p-6 md:p-10 w-full flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="max-w-lg text-white">
+<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4">
+                                Health Is Wealth, Trust in Our Care
+                            </h1>
+<p class="text-white/90 text-sm md:text-base font-medium mb-6">
+                                Your AI-driven preventive health companion is ready to analyze your vitals.
+                            </p>
+<button class="bg-white text-primary px-6 py-3 rounded-xl font-bold text-sm hover:bg-soft-mint transition-colors">
+                                Start Analysis
+                            </button>
+</div>
+<!-- Floating Glass Card -->
+<div class="glass-card p-4 rounded-xl w-full max-w-[200px] shadow-xl animate-fade-in-up">
+<div class="flex items-center justify-between mb-2">
+<span class="material-symbols-outlined text-white">analytics</span>
+<span class="text-white font-bold text-xs bg-white/20 px-2 py-0.5 rounded-full">Live</span>
+</div>
+<h3 class="text-white text-sm font-medium">AI Analysis</h3>
+<div class="mt-2 text-white text-2xl font-bold">75%</div>
+<div class="w-full bg-white/30 rounded-full h-1.5 mt-2">
+<div class="bg-white h-1.5 rounded-full w-[75%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Mission & Progress Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<h2 class="text-xl font-bold mb-3 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">spa</span>
+                            Our Mission
+                        </h2>
+<p class="text-slate-500 dark:text-slate-300 text-sm leading-relaxed">
+                            Empowering your wellness journey through intelligent, preventive care monitoring. We combine cutting-edge AI with human expertise to ensure you stay ahead of health risks.
+                        </p>
+</div>
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-center gap-4">
+<!-- Progress Items -->
+<div>
+<div class="flex justify-between text-xs font-semibold mb-1">
+<span>System Analysis</span>
+<span class="text-primary">92%</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 dark:bg-gray-700">
+<div class="bg-primary h-2 rounded-full" style="width: 92%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs font-semibold mb-1">
+<span>Model Training</span>
+<span class="text-primary">64%</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 dark:bg-gray-700">
+<div class="bg-primary h-2 rounded-full" style="width: 64%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs font-semibold mb-1">
+<span>Development</span>
+<span class="text-primary">88%</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-2 dark:bg-gray-700">
+<div class="bg-primary h-2 rounded-full" style="width: 88%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Specialist Grid -->
+<div>
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-bold">Top Specialists</h2>
+<a class="text-sm text-primary font-semibold hover:underline" href="#">View all</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<!-- Specialist 1 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center hover:shadow-md transition-shadow">
+<div class="relative w-16 h-16 mb-3">
+<img alt="Headshot of Dr. Sarah Jenkins" class="w-full h-full object-cover rounded-full" data-alt="Portrait of a smiling female doctor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBY2P47bYfNCnwgAKMVJsQzWG_qL9J_ht8EYQZpehDR38u5_VLEAk83Ssc_vaElU7cC-KL3dFJP4lprAHpTgWKoBQ2rn2InmGPYQP-3MIIuBoVNHyL57RSUFVzsWW8FmuHhRNA3sqsbqER_KaLyKOeZF7beoojCKWEh660mbK5927nPsYo63uvleZ62aplE4PVGQ78eXs7tOJt8UlnHnnMxdYCCWUGV5uGdfkkaubn4I_WF65qCPa72b0c12GDbEjvJkBkXsbsNAWNL"/>
+<div class="absolute bottom-0 right-0 bg-white rounded-full p-0.5">
+<span class="material-symbols-outlined text-green-500 text-sm bg-green-100 rounded-full p-0.5">check</span>
+</div>
+</div>
+<h3 class="font-bold text-slate-900 dark:text-white">Dr. Sarah Jenkins</h3>
+<p class="text-xs text-slate-500 mb-3">Cardiologist</p>
+<button class="w-full py-2 bg-soft-mint/50 text-primary text-xs font-bold rounded-lg hover:bg-soft-mint transition-colors">Book Appt</button>
+</div>
+<!-- Specialist 2 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center hover:shadow-md transition-shadow">
+<div class="relative w-16 h-16 mb-3">
+<img alt="Headshot of Dr. Mark Chen" class="w-full h-full object-cover rounded-full" data-alt="Portrait of a male doctor with glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXULu1dDQAkx9YP9E7VZUtu7h1hAVYTAs3nE5gefv60sxWPfBaLeDenaqMWgtcQW04Yqca6xiUPhTSo0rOtVPn98DCq3wjVjZfVypcex-Pw4u72WEz2kyG--odTQpTpt0ijD5LimywUxTbwD9rsDauuUjoqZhiSO6IURoSc0UJs1EIWW1AczBUC7LYkvvzCph_G3zXiyiJUwrvh6McQT99iMszzkvFVn1zeI8Ctxqt7lLuxoCLxDT_A5o7oX4dWx3ebuOTzl5VvpU_"/>
+<div class="absolute bottom-0 right-0 bg-white rounded-full p-0.5">
+<span class="material-symbols-outlined text-green-500 text-sm bg-green-100 rounded-full p-0.5">check</span>
+</div>
+</div>
+<h3 class="font-bold text-slate-900 dark:text-white">Dr. Mark Chen</h3>
+<p class="text-xs text-slate-500 mb-3">Neurologist</p>
+<button class="w-full py-2 bg-soft-mint/50 text-primary text-xs font-bold rounded-lg hover:bg-soft-mint transition-colors">Book Appt</button>
+</div>
+<!-- Specialist 3 -->
+<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center hover:shadow-md transition-shadow">
+<div class="relative w-16 h-16 mb-3">
+<img alt="Headshot of Dr. Emily Rose" class="w-full h-full object-cover rounded-full" data-alt="Portrait of a female doctor in scrubs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC81Hv9D5WaZlffRAjoBDzuWI769ZNCafQ7iYWEZ3-v6Vp5iFdq6QpSi9q3DG_k0m_5qLx-pdZhMnVDEOrZEu0PvBzgSiEnaWB4ACOc54qeQz-sV-Npfb-J5tA71Szjcxj0kWZc4VxY2Qo2EIuIP5CCVWfxovvL9IBGkIAyAD8I88xJwbtWtzf0eKnSWWHVKIa_5e95KLDihXw9-dREGRBS5B8dIQ45Ap6J64ZMuKZr62tqGWgXgNBDPWfgk5XZSkrM-9mZf4vh2rmB"/>
+<div class="absolute bottom-0 right-0 bg-white rounded-full p-0.5">
+<span class="material-symbols-outlined text-green-500 text-sm bg-green-100 rounded-full p-0.5">check</span>
+</div>
+</div>
+<h3 class="font-bold text-slate-900 dark:text-white">Dr. Emily Rose</h3>
+<p class="text-xs text-slate-500 mb-3">Nutritionist</p>
+<button class="w-full py-2 bg-soft-mint/50 text-primary text-xs font-bold rounded-lg hover:bg-soft-mint transition-colors">Book Appt</button>
+</div>
+</div>
+</div>
+<!-- Live Monitoring Section -->
+<div>
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+<div>
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white">Live AI Health Monitoring</h2>
+<p class="text-slate-500 text-sm">Real-time analysis of your vital signs.</p>
+</div>
+<button class="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<span class="material-symbols-outlined text-lg">picture_as_pdf</span>
+                            Export Report
+                        </button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Large Circular Progress (AI Risk Score) -->
+<div class="md:col-span-1 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center min-h-[240px]">
+<div class="relative w-40 h-40 flex items-center justify-center">
+<!-- SVG Circular Progress -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#E2E8F0" stroke-width="8"></circle>
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#106534" stroke-dasharray="251.2" stroke-dashoffset="30.14" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">88</span>
+<span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">/ 100</span>
+</div>
+</div>
+<h3 class="mt-4 font-bold text-lg">AI Risk Score</h3>
+<p class="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full mt-2 font-medium">Excellent Condition</p>
+</div>
+<!-- Vitals Grid -->
+<div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Heart Rate - ALERT -->
+<div class="bg-red-50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-200 dark:border-red-900/30 relative">
+<div class="flex justify-between items-start mb-2">
+<div class="p-2 bg-white dark:bg-slate-800 rounded-lg text-red-500 shadow-sm">
+<span class="material-symbols-outlined">favorite</span>
+</div>
+<span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide animate-pulse">Alert</span>
+</div>
+<div class="mt-2">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">102</span>
+<span class="text-sm text-slate-500">bpm</span>
+</div>
+<p class="text-xs text-red-600 mt-1 font-medium">Elevated heart rate detected</p>
+</div>
+<!-- Blood Pressure -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+<div class="flex justify-between items-start mb-2">
+<div class="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg text-primary shadow-sm">
+<span class="material-symbols-outlined">water_drop</span>
+</div>
+<span class="text-slate-400 text-xs">Now</span>
+</div>
+<div class="mt-2">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">120/80</span>
+<span class="text-sm text-slate-500">mmHg</span>
+</div>
+<p class="text-xs text-slate-400 mt-1">Normal range</p>
+</div>
+<!-- Sleep -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+<div class="flex justify-between items-start mb-2">
+<div class="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg text-indigo-500 shadow-sm">
+<span class="material-symbols-outlined">bedtime</span>
+</div>
+<span class="text-slate-400 text-xs">Last Night</span>
+</div>
+<div class="mt-2">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">7h 42m</span>
+</div>
+<p class="text-xs text-green-600 mt-1 font-medium">↑ 12% vs last week</p>
+</div>
+<!-- Steps -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700">
+<div class="flex justify-between items-start mb-2">
+<div class="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg text-orange-500 shadow-sm">
+<span class="material-symbols-outlined">footprint</span>
+</div>
+<span class="text-slate-400 text-xs">Today</span>
+</div>
+<div class="mt-2">
+<span class="text-3xl font-bold text-slate-900 dark:text-white">8,432</span>
+<span class="text-sm text-slate-500">steps</span>
+</div>
+<div class="w-full bg-gray-100 rounded-full h-1 mt-3 dark:bg-gray-700">
+<div class="bg-orange-400 h-1 rounded-full" style="width: 84%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Graph Section -->
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-lg">Weekly Vital Trends</h3>
+<div class="flex gap-2">
+<span class="w-3 h-3 rounded-full bg-primary/20 border border-primary"></span>
+<span class="text-xs text-slate-500">Heart Rate</span>
+</div>
+</div>
+<!-- CSS-only simple chart representation -->
+<div class="relative h-48 w-full flex items-end justify-between gap-1 sm:gap-2">
+<!-- Chart Bars/Points -->
+<div class="w-full h-full absolute inset-0 flex items-end">
+<!-- SVG Smooth Curve -->
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none">
+<defs>
+<lineargradient id="gradientPrimary" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#106534;stop-opacity:0.2"></stop>
+<stop offset="100%" style="stop-color:#106534;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,100 C50,80 100,120 150,60 S250,20 300,50 S400,90 500,40 S600,60 700,30 V200 H0 Z" fill="url(#gradientPrimary)"></path>
+<path d="M0,100 C50,80 100,120 150,60 S250,20 300,50 S400,90 500,40 S600,60 700,30" fill="none" stroke="#106534" stroke-width="3"></path>
+</svg>
+</div>
+<!-- X-Axis Labels -->
+<div class="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-slate-400 px-2">
+<span>Mon</span>
+<span>Tue</span>
+<span>Wed</span>
+<span>Thu</span>
+<span>Fri</span>
+<span>Sat</span>
+<span>Sun</span>
+</div>
+</div>
+<div class="h-6"></div> <!-- Spacer for labels -->
+</div>
+</main>
+<!-- Sidebar (Right 25% on Desktop, Sticky) -->
+<aside class="w-full lg:w-1/4 flex flex-col gap-6 lg:sticky lg:top-24 lg:h-fit">
+<!-- Profile Snippet -->
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+<div class="relative w-24 h-24 mx-auto mb-4">
+<img alt="User profile picture" class="w-full h-full object-cover rounded-full border-4 border-soft-mint" data-alt="Portrait of a young man smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCH_oRGbsQNhiLAOFF_XwVIWhUOj6RbsAUana6CXFjfRnUYR7vzTvhcEkdkhQES7RTfar0kWqZ32rBCX2pgpzlUz_Hle4BPXa1st_Szcy0l1AKaq-BOi7Q_zSuc2ZO_1beiMV78dpDjjLQNj2_PK7AgEro1RFJ_ImNrsn3vRr0WCyomt3-bMHFiqBgjr5jfaHyqfpwAEssUSTe0oDJr29zlmtxTbtanbf0FXFRVPqd5xcaDlFVW6ckFxtSlDgLqdQeLlBZILgm0CNQO"/>
+<button class="absolute bottom-0 right-0 bg-primary text-white p-1.5 rounded-full shadow-md hover:bg-primary/90">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Alex Johnson</h3>
+<p class="text-sm text-slate-500 mb-6">Premium Member</p>
+<div class="grid grid-cols-3 gap-2 border-t border-gray-100 dark:border-gray-700 pt-4">
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Age</p>
+<p class="font-bold text-lg">28</p>
+</div>
+<div class="border-x border-gray-100 dark:border-gray-700">
+<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Wght</p>
+<p class="font-bold text-lg">75<span class="text-xs font-normal">kg</span></p>
+</div>
+<div>
+<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Hght</p>
+<p class="font-bold text-lg">182<span class="text-xs font-normal">cm</span></p>
+</div>
+</div>
+</div>
+<!-- Medical Reminders -->
+<div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-bold text-lg">Reminders</h3>
+<span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">2 New</span>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Reminder Item 1 -->
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group cursor-pointer">
+<div class="bg-orange-100 text-orange-600 p-2 rounded-lg group-hover:bg-white transition-colors">
+<span class="material-symbols-outlined">pill</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Vitamin D</h4>
+<p class="text-xs text-slate-500">Today, 09:00 AM</p>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+</div>
+<!-- Reminder Item 2 -->
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group cursor-pointer">
+<div class="bg-blue-100 text-blue-600 p-2 rounded-lg group-hover:bg-white transition-colors">
+<span class="material-symbols-outlined">water_drop</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">Hydration</h4>
+<p class="text-xs text-slate-500">Every 2 hours</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 text-lg">volume_up</span>
+</div>
+<!-- Reminder Item 3 -->
+<div class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors group cursor-pointer">
+<div class="bg-green-100 text-green-600 p-2 rounded-lg group-hover:bg-white transition-colors">
+<span class="material-symbols-outlined">monitor_heart</span>
+</div>
+<div class="flex-1">
+<h4 class="text-sm font-bold text-slate-900 dark:text-white">BP Check</h4>
+<p class="text-xs text-slate-500">Tomorrow, 08:00 AM</p>
+</div>
+<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+</div>
+</div>
+<button class="w-full mt-4 text-primary text-sm font-bold py-2 border border-primary/20 rounded-lg hover:bg-primary/5 transition-colors">
+                        View Calendar
+                    </button>
+</div>
+<!-- Quick Ad/Tip -->
+<div class="bg-gradient-to-br from-primary to-green-800 p-6 rounded-2xl shadow-md text-white">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-soft-mint text-3xl">psychology</span>
+<div>
+<h4 class="font-bold mb-1">Daily Insight</h4>
+<p class="text-xs text-white/80 leading-relaxed">Walking 20 mins a day boosts your immune system by 15%.</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<!-- Mobile Bottom Navigation (Visible only on small screens) -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-gray-700 pb-safe pt-2 px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50">
+<div class="flex justify-between items-end pb-3">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium">Dash</span>
+</a>
+<div class="-mt-8 bg-primary rounded-full p-3 shadow-lg border-4 border-white dark:border-slate-800">
+<span class="material-symbols-outlined text-white">add</span>
+</div>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-medium">Report</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</a>
+</div>
+</div>
+<!-- Spacing for bottom nav on mobile -->
+<div class="h-20 md:hidden"></div>
+</body></html>
