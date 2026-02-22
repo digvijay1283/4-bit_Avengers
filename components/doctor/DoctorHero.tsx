@@ -1,8 +1,26 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function DoctorHero() {
+  const [doctorName, setDoctorName] = useState("Doctor");
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const res = await fetch("/api/profile");
+        const data = await res.json();
+        if (data.success && data.user?.fullName) {
+          setDoctorName(data.user.fullName.split(" ")[0]);
+        }
+      } catch {
+        /* use fallback */
+      }
+    }
+    fetchProfile();
+  }, []);
+
   return (
     <div className="relative w-full rounded-2xl overflow-hidden min-h-[220px] flex items-center shadow-lg">
       {/* Background */}
@@ -26,7 +44,7 @@ export default function DoctorHero() {
             Doctor Console
           </p>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-tight mb-3">
-            Welcome back, Doctor
+            Welcome back, Dr. {doctorName}
           </h1>
           <p className="text-white/80 text-sm md:text-base font-medium">
             Scan a patient QR code to access their complete health profile,

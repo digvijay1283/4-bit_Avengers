@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import PatientProfileHeader from "@/components/doctor/PatientProfileHeader";
 import PatientVitalsPanel from "@/components/doctor/PatientVitalsPanel";
 import PatientReportSummary from "@/components/doctor/PatientReportSummary";
 import PatientMedicineHistory from "@/components/doctor/PatientMedicineHistory";
 import Link from "next/link";
 
+/* ─── Types ─────────────────────────────────────────────── */
 type PatientData = {
   userId: string;
   email: string;
@@ -17,65 +18,124 @@ type PatientData = {
   phone: string | null;
   role: string;
   status: string;
-  lastLoginAt: string | null;
+  lastLoginAt?: string | null;
   createdAt: string;
 };
 
-type ApiResponse = {
-  patient: PatientData;
-  records: Record<string, unknown[]>;
-  totalRecords: number;
-  error?: string;
+type VitalItem = {
+  label: string;
+  value: string;
+  unit: string;
+  icon: string;
+  color: string;
+  status: "normal" | "warning" | "critical";
 };
 
+type ReportItem = {
+  id: string;
+  title: string;
+  date: string;
+  summary: string;
+  fileUrl?: string;
+  type: string;
+  status: string;
+  severity: "normal" | "attention" | "critical";
+};
+
+type MedicineItem = {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  isActive: boolean;
+  adherence: number;
+  startDate: string;
+  status: string;
+  missedStreakCount: number;
+  remainingQuantity: number;
+  totalQuantity: number;
+};
+
+/* ─── Component ─────────────────────────────────────────── */
 export default function PatientDetailPage() {
   const params = useParams<{ id: string }>();
   const patientId = params.id;
 
-  const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [patient, setPatient] = useState<PatientData | null>(null);
+  const [vitals, setVitals] = useState<VitalItem[]>([]);
+  const [vitalsUpdated, setVitalsUpdated] = useState<string | null>(null);
+  const [reports, setReports] = useState<ReportItem[]>([]);
+  const [medicines, setMedicines] = useState<MedicineItem[]>([]);
 
-  useEffect(() => {
+  const fetchPatientData = useCallback(async () => {
     if (!patientId) return;
+    setLoading(true);
+    setError("");
 
-    async function fetchPatient() {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await fetch(`/api/doctor/patient/${encodeURIComponent(patientId)}`);
-        const json = await res.json();
-        if (!res.ok) {
-          setError(json.error ?? "Failed to fetch patient data");
-          return;
-        }
-        setData(json);
-      } catch {
-        setError("Network error. Please try again.");
-      } finally {
-        setLoading(false);
+    try {
+      const encoded = encodeURIComponent(patientId);
+
+      // Fetch all data in parallel
+      const [profileRes, vitalsRes, reportsRes, medsRes] = await Promise.all([
+        fetch(`/api/doctor/patient/${encoded}`),
+        fetch(`/api/doctor/patient/${encoded}/vitals`),
+        fetch(`/api/doctor/patient/${encoded}/reports`),
+        fetch(`/api/doctor/patient/${encoded}/medicines`),
+      ]);
+
+      // Profile (required)
+      const profileData = await profileRes.json();
+      if (!profileRes.ok)
+        throw new Error(profileData.error ?? "Patient not found");
+      setPatient(profileData.patient);
+
+      // Vitals (optional — may be empty)
+      const vitalsData = await vitalsRes.json().catch(() => null);
+      if (vitalsData?.success) {
+        setVitals(vitalsData.vitals ?? []);
+        setVitalsUpdated(vitalsData.lastUpdated ?? null);
       }
-    }
 
-    fetchPatient();
+      // Reports (optional)
+      const reportsData = await reportsRes.json().catch(() => null);
+      if (reportsData?.success) {
+        setReports(reportsData.reports ?? []);
+      }
+
+      // Medicines (optional)
+      const medsData = await medsRes.json().catch(() => null);
+      if (medsData?.success) {
+        setMedicines(medsData.medicines ?? []);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load patient data"
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [patientId]);
 
-  // ── Loading state ──
+  useEffect(() => {
+    fetchPatientData();
+  }, [fetchPatientData]);
+
+  /* ── Loading state ── */
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="flex flex-col items-center justify-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-[#64748B]">
-            Loading patient profile…
-          </p>
+          <p className="text-sm text-[#64748B]">Loading patient profile…</p>
         </div>
       </div>
     );
   }
 
-  // ── Error state ──
-  if (error || !data) {
+  /* ── Error state ── */
+  if (error || !patient) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center max-w-lg mx-auto">
@@ -97,22 +157,32 @@ export default function PatientDetailPage() {
     );
   }
 
+  /* ── Main ── */
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Patient Header */}
-      <PatientProfileHeader patient={data.patient} />
+      <PatientProfileHeader patient={patient} />
 
-      {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left – Vitals + Medicine */}
-        <div className="w-full lg:w-2/5 flex flex-col gap-6">
-          <PatientVitalsPanel />
-          <PatientMedicineHistory />
+      {/* Refresh bar */}
+      <div className="flex items-center justify-end">
+        <button
+          onClick={fetchPatientData}
+          className="inline-flex items-center gap-2 text-xs text-[#64748B] hover:text-primary transition"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Refresh data
+        </button>
+      </div>
+
+      {/* Vitals */}
+      <PatientVitalsPanel vitals={vitals} lastUpdated={vitalsUpdated} />
+
+      {/* Reports & Medicines — side by side on larger screens */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        <div className="w-full xl:w-3/5">
+          <PatientReportSummary reports={reports} />
         </div>
-
-        {/* Right – Reports & Summaries */}
-        <div className="w-full lg:w-3/5">
-          <PatientReportSummary />
+        <div className="w-full xl:w-2/5">
+          <PatientMedicineHistory medicines={medicines} />
         </div>
       </div>
     </div>

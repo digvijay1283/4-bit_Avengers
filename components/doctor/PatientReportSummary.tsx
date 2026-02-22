@@ -1,132 +1,174 @@
 "use client";
 
-import { FileText, ChevronRight, Download, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import {
+  FileText,
+  Download,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ClipboardList,
+} from "lucide-react";
 
 type Report = {
   id: string;
   title: string;
   date: string;
   summary: string;
-  type: "lab" | "report" | "note";
+  fileUrl?: string;
+  type: string;
+  status?: string;
   severity: "normal" | "attention" | "critical";
 };
 
-const mockReports: Report[] = [
-  {
-    id: "r1",
-    title: "Complete Blood Count (CBC)",
-    date: "Feb 20, 2026",
-    summary:
-      "Hemoglobin slightly below normal range (11.8 g/dL). WBC count normal (7,200/µL). Platelet count within range. Recommend iron supplementation and follow-up in 4 weeks.",
-    type: "lab",
-    severity: "attention",
-  },
-  {
-    id: "r2",
-    title: "Lipid Panel",
-    date: "Feb 18, 2026",
-    summary:
-      "Total cholesterol: 215 mg/dL (borderline). LDL: 138 mg/dL (near optimal). HDL: 52 mg/dL. Triglycerides: 125 mg/dL. Dietary changes recommended.",
-    type: "lab",
-    severity: "attention",
-  },
-  {
-    id: "r3",
-    title: "HbA1c Test",
-    date: "Feb 15, 2026",
-    summary:
-      "HbA1c at 6.2% — pre-diabetic range. Fasting glucose: 118 mg/dL. Recommend lifestyle modifications, regular exercise, and recheck in 3 months.",
-    type: "lab",
-    severity: "critical",
-  },
-  {
-    id: "r4",
-    title: "Thyroid Function Panel",
-    date: "Feb 10, 2026",
-    summary:
-      "TSH: 2.4 mIU/L (normal). Free T4: 1.2 ng/dL (normal). Free T3: 3.1 pg/mL (normal). No thyroid abnormalities detected.",
-    type: "lab",
-    severity: "normal",
-  },
-  {
-    id: "r5",
-    title: "Doctor's Note — Follow-up Visit",
-    date: "Feb 8, 2026",
-    summary:
-      "Patient reports mild fatigue, occasional dizziness. Vitals stable. Adjusted metformin dosage. Scheduled follow-up lab work. Continue current exercise regimen.",
-    type: "note",
-    severity: "normal",
-  },
-];
+type Props = {
+  reports?: Report[];
+};
 
-const severityBadge: Record<Report["severity"], string> = {
+const severityBadge: Record<string, string> = {
   normal: "bg-green-50 text-green-600 border-green-200",
   attention: "bg-amber-50 text-amber-600 border-amber-200",
   critical: "bg-red-50 text-red-500 border-red-200",
 };
 
-const severityLabel: Record<Report["severity"], string> = {
+const severityLabel: Record<string, string> = {
   normal: "Normal",
   attention: "Needs Attention",
   critical: "Critical",
 };
 
-export default function PatientReportSummary() {
+export default function PatientReportSummary({ reports }: Props) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const hasData = reports && reports.length > 0;
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
   return (
     <div className="rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4">
         <div>
           <h3 className="font-semibold text-[#0F172A]">Reports & Summaries</h3>
           <p className="text-xs text-[#94A3B8] mt-0.5">
-            AI-summarised lab results and doctor notes
+            {hasData
+              ? `${reports.length} report${reports.length > 1 ? "s" : ""} — AI-summarised lab results and doctor notes`
+              : "No reports available yet"}
           </p>
         </div>
-        <span className="text-xs text-primary font-medium cursor-pointer hover:underline">
-          View all
-        </span>
+        {hasData && (
+          <span className="text-xs text-primary font-medium">
+            {reports.filter((r) => r.severity === "critical").length} critical
+          </span>
+        )}
       </div>
 
-      <div className="divide-y divide-[#F1F5F9]">
-        {mockReports.map((report) => (
-          <div
-            key={report.id}
-            className="px-5 py-4 hover:bg-[#F8FAFC] transition-colors"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 mt-0.5">
-                  {report.severity === "critical" ? (
-                    <AlertCircle className="h-5 w-5 text-red-500" />
-                  ) : (
-                    <FileText className="h-5 w-5 text-blue-500" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-[#0F172A]">
-                      {report.title}
-                    </p>
-                    <span
-                      className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${severityBadge[report.severity]}`}
-                    >
-                      {severityLabel[report.severity]}
-                    </span>
+      {!hasData ? (
+        <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+          <div className="h-12 w-12 rounded-full bg-[#F1F5F9] flex items-center justify-center mb-3">
+            <ClipboardList className="h-6 w-6 text-[#94A3B8]" />
+          </div>
+          <p className="text-sm font-medium text-[#64748B]">
+            No reports uploaded
+          </p>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            Reports will appear once the patient uploads medical documents
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-[#F1F5F9]">
+          {reports.map((report) => {
+            const isExpanded = expandedId === report.id;
+
+            return (
+              <div
+                key={report.id}
+                className="px-5 py-4 hover:bg-[#F8FAFC] transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 mt-0.5">
+                      {report.severity === "critical" ? (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-[#0F172A]">
+                          {report.title}
+                        </p>
+                        <span
+                          className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full border ${severityBadge[report.severity]}`}
+                        >
+                          {severityLabel[report.severity]}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#94A3B8] mt-0.5">
+                        {fmtDate(report.date)} •{" "}
+                        {report.type === "note" ? "Doctor Note" : "Lab Result"}
+                      </p>
+
+                      {/* Summary — truncated by default, expandable */}
+                      <p
+                        className={`text-sm text-[#475569] mt-2 leading-relaxed ${
+                          !isExpanded ? "line-clamp-2" : ""
+                        }`}
+                      >
+                        {report.summary}
+                      </p>
+
+                      {report.summary.length > 120 && (
+                        <button
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : report.id)
+                          }
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="h-3 w-3" /> Show less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-3 w-3" /> Read more
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-[#94A3B8] mt-0.5">
-                    {report.date} • {report.type === "note" ? "Doctor Note" : "Lab Result"}
-                  </p>
-                  <p className="text-sm text-[#475569] mt-2 leading-relaxed">
-                    {report.summary}
-                  </p>
+
+                  <div className="flex items-center gap-1 shrink-0 mt-1">
+                    {report.fileUrl && (
+                      <a
+                        href={report.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 rounded-lg hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-primary transition-colors"
+                        title="View report"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                    <button
+                      className="p-2 rounded-lg hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-primary transition-colors"
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <button className="shrink-0 mt-1 p-2 rounded-lg hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-primary transition-colors">
-                <Download className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

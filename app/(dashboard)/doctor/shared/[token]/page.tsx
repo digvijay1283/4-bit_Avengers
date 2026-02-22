@@ -22,7 +22,11 @@ import {
   ArrowLeft,
   X,
   Eye,
+  Heart,
+  Pill,
 } from "lucide-react";
+import PatientVitalsPanel from "@/components/doctor/PatientVitalsPanel";
+import PatientMedicineHistory from "@/components/doctor/PatientMedicineHistory";
 
 /* ────────────────────────────── types ────────────────────────────── */
 type ExtractedMedicalInfo = {
@@ -75,6 +79,15 @@ export default function SharedPatientPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
+  // Extra data for enhanced view
+  const [vitals, setVitals] = useState<
+    { label: string; value: string; unit: string; icon: string; color: string; status: "normal" | "warning" | "critical" }[]
+  >([]);
+  const [vitalsUpdated, setVitalsUpdated] = useState<string | null>(null);
+  const [medicines, setMedicines] = useState<
+    { id: string; name: string; dosage: string; frequency: string; isActive: boolean; adherence: number; startDate: string; status: string; missedStreakCount: number; remainingQuantity: number; totalQuantity: number }[]
+  >([]);
+
   useEffect(() => {
     if (!token) return;
 
@@ -91,6 +104,30 @@ export default function SharedPatientPage() {
         setPatient(json.patient);
         setReports(json.reports);
         setExpiresAt(json.expiresAt);
+
+        // Also fetch vitals and medicines for this patient
+        const patientId = json.patient?.userId;
+        if (patientId) {
+          const [vitalsRes, medsRes] = await Promise.all([
+            fetch(`/api/doctor/patient/${patientId}/vitals`).catch(() => null),
+            fetch(`/api/doctor/patient/${patientId}/medicines`).catch(() => null),
+          ]);
+
+          if (vitalsRes?.ok) {
+            const vData = await vitalsRes.json();
+            if (vData.success) {
+              setVitals(vData.vitals ?? []);
+              setVitalsUpdated(vData.lastUpdated ?? null);
+            }
+          }
+
+          if (medsRes?.ok) {
+            const mData = await medsRes.json();
+            if (mData.success) {
+              setMedicines(mData.medicines ?? []);
+            }
+          }
+        }
       } catch {
         setError("Network error. Please try again.");
       } finally {
@@ -226,6 +263,22 @@ export default function SharedPatientPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Vitals & Medicines ───────────────────────────────────────── */}
+      {(vitals.length > 0 || medicines.length > 0) && (
+        <div className="flex flex-col lg:flex-row gap-6">
+          {vitals.length > 0 && (
+            <div className="w-full lg:w-1/2">
+              <PatientVitalsPanel vitals={vitals} lastUpdated={vitalsUpdated} />
+            </div>
+          )}
+          {medicines.length > 0 && (
+            <div className="w-full lg:w-1/2">
+              <PatientMedicineHistory medicines={medicines} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── Shared Reports ───────────────────────────────────────────── */}
       <div>
