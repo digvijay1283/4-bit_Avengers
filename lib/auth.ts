@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
+import { cookies, headers } from "next/headers";
 
 const JWT_SECRET: string =
   process.env.JWT_SECRET ?? "dev-insecure-secret-change-before-deploy";
@@ -51,4 +52,22 @@ export function signAuthToken(payload: {
 
 export function verifyAuthToken(token: string): AuthTokenPayload {
   return jwt.verify(token, JWT_SECRET, VERIFY_OPTIONS) as AuthTokenPayload;
+}
+
+/**
+ * Extract the auth token from either the Authorization Bearer header (mobile)
+ * or the httpOnly auth_token cookie (web). Use this in any API route
+ * that needs the raw JWT token.
+ */
+export async function getTokenFromRequest(): Promise<string | undefined> {
+  // 1. Try Bearer token from Authorization header (mobile / API clients)
+  const headerStore = await headers();
+  const authHeader = headerStore.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
+  // 2. Fall back to httpOnly cookie (web client)
+  const cookieStore = await cookies();
+  return cookieStore.get("auth_token")?.value;
 }

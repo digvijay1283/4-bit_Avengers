@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyAuthToken } from "@/lib/auth";
 
@@ -12,8 +12,20 @@ export type AuthUser = {
 };
 
 export async function getAuthUser(): Promise<AuthUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
+  // 1. Try Bearer token from Authorization header (mobile / API clients)
+  const headerStore = await headers();
+  const authHeader = headerStore.get("authorization");
+  let token: string | undefined;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  }
+
+  // 2. Fall back to httpOnly cookie (web client)
+  if (!token) {
+    const cookieStore = await cookies();
+    token = cookieStore.get("auth_token")?.value;
+  }
 
   if (!token) return null;
 

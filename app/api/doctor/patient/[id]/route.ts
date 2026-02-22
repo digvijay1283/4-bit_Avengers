@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { HealthRecord } from "@/models/HealthRecord";
-import { verifyAuthToken } from "@/lib/auth";
-import { cookies } from "next/headers";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 
 export async function GET(
   _req: NextRequest,
@@ -11,8 +10,7 @@ export async function GET(
 ) {
   try {
     // ── Auth check: only doctors ──
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

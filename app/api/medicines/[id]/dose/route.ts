@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Medicine from "@/lib/models/Medicine";
 import DoseLog from "@/lib/models/DoseLog";
@@ -12,8 +11,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -119,8 +117,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

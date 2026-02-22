@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import { Report } from "@/models/Report";
 
@@ -11,8 +10,7 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
@@ -42,8 +40,7 @@ export async function GET() {
  */
 export async function DELETE(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }

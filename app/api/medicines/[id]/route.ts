@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Medicine from "@/lib/models/Medicine";
 
@@ -11,8 +10,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -50,8 +48,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

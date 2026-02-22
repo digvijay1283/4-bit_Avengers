@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { recognize } from "tesseract.js";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 
 /**
  * Enhanced NLP parser — extract medicine entries from raw OCR text.
@@ -78,8 +77,7 @@ function parsePrescriptionText(rawText: string) {
 export async function POST(req: NextRequest) {
   try {
     // ─── Auth ───────────────────────────────────────────────────
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

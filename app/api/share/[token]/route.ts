@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import { ShareSession } from "@/models/ShareSession";
 import { Report } from "@/models/Report";
@@ -18,8 +17,7 @@ export async function GET(
 ) {
   try {
     // ── Auth check: only doctors ────────────────────────────────────
-    const cookieStore = await cookies();
-    const authToken = cookieStore.get("auth_token")?.value;
+    const authToken = await getTokenFromRequest();
     if (!authToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

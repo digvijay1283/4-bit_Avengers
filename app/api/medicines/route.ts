@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifyAuthToken } from "@/lib/auth";
+import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Medicine from "@/lib/models/Medicine";
 import DoseLog from "@/lib/models/DoseLog";
@@ -14,8 +13,7 @@ function toHHMM(date: Date): string {
 // ─── GET /api/medicines — list user's medicines ───────────────────────────────
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -128,8 +126,7 @@ export async function GET() {
 // ─── POST /api/medicines — save medicines (from OCR review or manual) ─────────
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

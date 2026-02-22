@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       {
         ok: true,
         message: "Login successful.",
+        token,                           // <-- expose for mobile clients
         user: {
           userId: user.userId,
           fullName: user.fullName,
