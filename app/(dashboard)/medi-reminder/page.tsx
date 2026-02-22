@@ -381,7 +381,6 @@ export default function MediReminderPage() {
             prev.filter((a) => a.medicineId !== id)
           )
         }
-        onCallGuardian={handleGuardianAlert}
       />
 
       {/* FAB â€” scan prescription via OCR / manual add */}

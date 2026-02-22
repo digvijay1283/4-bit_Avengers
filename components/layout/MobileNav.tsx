@@ -10,6 +10,7 @@ import {
   Pill,
   Stethoscope,
   Brain,
+  Bot,
 } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 
@@ -18,7 +19,7 @@ const userBottomNav = [
   { label: "Dash", href: "/dashboard", icon: LayoutDashboard },
   { label: "Reports", href: "/reports", icon: FileText },
   // Center FAB goes here (index 2)
-  { label: "Mental", href: "/mental-health", icon: Brain },
+  { label: "AI", href: "/assistant", icon: Bot },
   { label: "Profile", href: "/profile", icon: User },
 ];
 
@@ -30,8 +31,11 @@ const doctorBottomNav = [
 
 export default function MobileNav() {
   const pathname = usePathname();
-  const { user } = useSession();
+  const { user, status } = useSession();
   const role = user?.role ?? "user";
+
+  // Hide mobile nav until session is resolved to prevent wrong-role flash
+  if (status === "loading") return null;
 
   const isDoctor = role === "doctor";
   const items = isDoctor ? doctorBottomNav : userBottomNav;

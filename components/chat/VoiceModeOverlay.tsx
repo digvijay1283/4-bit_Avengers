@@ -60,6 +60,7 @@ export default function VoiceModeOverlay({
   const wordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closingRef = useRef(false);
+  const processingRef = useRef(false); // true while processing/speaking — blocks onend restart
   const finalTextRef = useRef("");   // accumulated final transcript
 
   // Always-fresh callback refs — never stale, no dependency chains
@@ -156,6 +157,10 @@ export default function VoiceModeOverlay({
   /* ── Send recognised text → get reply → TTS ─────────────────────────── */
   async function sendAndSpeak(text: string) {
     if (!text.trim() || closingRef.current) return;
+    // Clear BEFORE stopRec/abort so the onend handler sees an empty ref
+    // and does not re-send the same text a second time.
+    finalTextRef.current = "";
+    processingRef.current = true;  // block onend from restarting mic
     stopRec();                 // stop mic while processing + speaking
     setPhase("processing");
     setTranscript(text);
@@ -187,6 +192,7 @@ export default function VoiceModeOverlay({
     setInterimText("");
     setDisplayWords([]);
     finalTextRef.current = "";
+    processingRef.current = false; // ready to accept voice again
 
     const rec = new SR();
     rec.continuous = true;       // ← stay open, no restart loop
@@ -222,13 +228,13 @@ export default function VoiceModeOverlay({
       clearSilenceTimer();
 
       // If we have final text, start a silence countdown.
-      // After 1.8s of silence → auto-send.
+      // 2.5 s gives enough room for natural mid-sentence pauses.
       if (finalTextRef.current) {
         silenceTimerRef.current = setTimeout(() => {
           if (closingRef.current) return;
           const text = finalTextRef.current;
           if (text.trim()) sendAndSpeak(text);
-        }, 1800);
+        }, 2500);
       }
     };
 
@@ -246,6 +252,7 @@ export default function VoiceModeOverlay({
       recRef.current = null;
       clearSilenceTimer();
       if (closingRef.current) return;
+      if (processingRef.current) return; // we stopped intentionally to process
 
       // If we had accumulated speech, send it now
       const pending = finalTextRef.current.trim();

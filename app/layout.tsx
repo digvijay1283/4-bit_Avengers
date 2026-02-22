@@ -31,6 +31,9 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           precedence="default"
         />
+        {/* Live2D Cubism 4 Core — served locally for reliability */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/live2dcubismcore.min.js" />
       </head>
       <body
         suppressHydrationWarning

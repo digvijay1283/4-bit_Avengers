@@ -11,6 +11,7 @@ export interface IReport extends Document {
   cloudinaryPublicId: string;
   rawText: string; // OCR raw output
   extractedData: ExtractedMedicalInfo | null;
+  summary: string; // AI-generated summary
   status: "processing" | "completed" | "failed";
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +33,7 @@ const reportSchema = new Schema<IReport>(
     cloudinaryPublicId: { type: String, required: true },
     rawText: { type: String, default: "" },
     extractedData: { type: Schema.Types.Mixed, default: null },
+    summary: { type: String, default: "" },
     status: {
       type: String,
       enum: ["processing", "completed", "failed"],

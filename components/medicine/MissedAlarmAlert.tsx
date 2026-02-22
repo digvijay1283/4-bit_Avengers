@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, X, Phone, PhoneCall, Loader2, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, X, Loader2, CheckCircle2 } from "lucide-react";
 
 interface MissedAlarmAlertProps {
   alerts: {
@@ -13,13 +13,11 @@ interface MissedAlarmAlertProps {
     callingInProgress?: boolean;
   }[];
   onDismiss: (medicineId: string) => void;
-  onCallGuardian?: (medicineId: string, medicineName: string, missedCount: number) => void;
 }
 
 export default function MissedAlarmAlert({
   alerts,
   onDismiss,
-  onCallGuardian,
 }: MissedAlarmAlertProps) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -68,26 +66,9 @@ export default function MissedAlarmAlert({
                   </span>
                 </div>
               ) : (
-                <div className="mt-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs text-red-500 bg-red-100 rounded-lg px-3 py-2">
-                    <PhoneCall className="h-3.5 w-3.5" />
-                    <span>Guardian will be alerted automatically</span>
-                  </div>
-                  {onCallGuardian && (
-                    <button
-                      onClick={() =>
-                        onCallGuardian(
-                          alert.medicineId,
-                          alert.medicineName,
-                          alert.missedCount
-                        )
-                      }
-                      className="flex items-center justify-center gap-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg px-3 py-2 transition-colors"
-                    >
-                      <Phone className="h-3.5 w-3.5" />
-                      Call Guardian Now
-                    </button>
-                  )}
+                <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Placing guardian call automatically…</span>
                 </div>
               )}
             </div>

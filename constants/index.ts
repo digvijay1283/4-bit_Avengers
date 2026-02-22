@@ -21,6 +21,7 @@ export const ROUTES = {
   SHARE: "/share",
   UPLOAD: "/upload",
   CHAT: "/chat",
+  ASSISTANT: "/assistant",
   DOCTOR_SHARED: "/doctor/shared", // + /[token]
 } as const;
 
@@ -61,6 +62,7 @@ const USER_NAV_ITEMS = [
   { label: "Share", href: ROUTES.SHARE, icon: "QrCode" },
   { label: "Mental Health", href: ROUTES.MENTAL_HEALTH, icon: "Brain" },
   { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
+  { label: "AI Assistant", href: ROUTES.ASSISTANT, icon: "Bot" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
 ] as const;
 
@@ -79,6 +81,7 @@ export const ROUTE_ACCESS: Record<string, AppRole[]> = {
   [ROUTES.MENTAL_HEALTH]: ["user"],
   [ROUTES.UPLOAD]: ["user"],
   [ROUTES.CHAT]: ["user", "doctor"],
+  [ROUTES.ASSISTANT]: ["user"],
   [ROUTES.SHARE]: ["user"],
   [ROUTES.DOCTOR]: ["doctor"],
   [ROUTES.DOCTOR_PATIENT]: ["doctor"],

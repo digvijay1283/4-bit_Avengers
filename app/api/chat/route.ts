@@ -1,22 +1,13 @@
 /**
  * POST /api/chat
  *
- * Handles a user message and returns the bot's response.
- * Integrates with the proactive-session system:
- *   1. Cancels any pending proactive timer (user beat the bot — corner case)
- *   2. Marks user as active and clears "waiting for reply" gate
- *   3. Returns the bot response (webhook if configured, fallback otherwise)
- *   4. Schedules one proactive message (5–10s delay), then waits for user reply
+ * Handles a user message and returns the bot's response via the
+ * cavista-mental-chatbot webhook.
  */
 
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getAuthUser } from "@/lib/rbac";
-import {
-  getOrCreateSession,
-  cancelProactiveTimer,
-  scheduleProactiveMessage,
-} from "@/lib/chatSessions";
 
 // ── Fallback responses (used when CHATBOT_WEBHOOK_URL is not configured) ─────
 const FALLBACK_RESPONSES: Record<string, string[]> = {
@@ -72,21 +63,20 @@ export async function POST(request: Request) {
   try {
     // ── Auth ───────────────────────────────────────────────────────────────
     const authUser = await getAuthUser();
-    const userName = authUser?.fullName ?? "there";
     const resolvedUserId = authUser?.userId ?? "anonymous";
 
     // ── Parse body ─────────────────────────────────────────────────────────
     const body = (await request.json()) as {
       userId?: string;
       chatId?: string;
-      sessionId?: string;
       userChat?: string;
+      summary?: string;
     };
 
     const userId = body.userId ?? resolvedUserId;
     const chatId = body.chatId ?? randomUUID();
-    const sessionId = body.sessionId ?? randomUUID();
     const userChat = body.userChat?.trim();
+    const summary = body.summary ?? "";
 
     if (!userChat) {
       return NextResponse.json(
@@ -95,50 +85,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Session management ─────────────────────────────────────────────────
-    const session = getOrCreateSession(sessionId, userId, userName);
-
-    // CORNER CASE: user sent a message before the scheduled proactive push
-    // → cancel so we don't send a bot message on top of this exchange
-    cancelProactiveTimer(sessionId);
-
-    session.userLastActiveAt = Date.now();
-    session.interactionCount += 1;
-    session.waitingForUserAfterProactive = false;
-
-    // ── Get bot response ───────────────────────────────────────────────────
+    // ── Call the mental chatbot webhook ────────────────────────────────────
+    const WEBHOOK = "https://synthomind.cloud/webhook/cavista-mental-chatbot";
     let output = "";
-    const WEBHOOK = process.env.CHATBOT_WEBHOOK_URL;
+    let audio = "";
 
-    if (WEBHOOK) {
-      try {
-        const webhookRes = await fetch(WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId, userId, sessionId, userChat }),
-        });
-        if (webhookRes.ok) {
-          const data = (await webhookRes.json()) as
-            | { output?: string }
-            | { output?: string }[];
-          output = Array.isArray(data)
-            ? data.map((d) => d.output ?? "").join("")
-            : (data.output ?? "");
+    try {
+      const webhookRes = await fetch(WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId, userId, userChat, summary }),
+      });
+      if (webhookRes.ok) {
+        const data = (await webhookRes.json()) as
+          | { output?: string; reply?: string; audio?: string }
+          | { output?: string; reply?: string; audio?: string }[];
+        if (Array.isArray(data)) {
+          output = data.map((d) => d.reply ?? d.output ?? "").join("");
+          audio = data[0]?.audio ?? "";
         } else {
-          output = getFallbackResponse(userChat);
+          output = data.reply ?? data.output ?? "";
+          audio = data.audio ?? "";
         }
-      } catch {
+      } else {
         output = getFallbackResponse(userChat);
       }
-    } else {
+    } catch {
       output = getFallbackResponse(userChat);
     }
 
-    // ── Schedule a single proactive message after each bot response ────────
-    scheduleProactiveMessage(sessionId);
-
     return NextResponse.json(
-      { ok: true, chatId, sessionId, output },
+      { ok: true, chatId, output, audio },
       { status: 200 }
     );
   } catch (error) {

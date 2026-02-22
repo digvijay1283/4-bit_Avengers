@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HeroSection from "@/components/dashboard/HeroSection";
 import LiveMonitoring from "@/components/dashboard/LiveMonitoring";
 import ProfileSnippet from "@/components/dashboard/ProfileSnippet";
+import RoutineRecommendation from "@/components/dashboard/RoutineRecommendation";
 import ChatDashboardModal from "@/components/chat/ChatDashboardModal";
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ export default function DashboardPage() {
           <main className="w-full lg:w-3/4 flex flex-col gap-8">
             <HeroSection />
             <LiveMonitoring />
+            <RoutineRecommendation />
           </main>
 
           <aside className="w-full lg:w-1/4 flex flex-col gap-6 lg:sticky lg:top-24 lg:h-fit">

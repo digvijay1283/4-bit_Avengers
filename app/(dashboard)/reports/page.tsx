@@ -132,6 +132,25 @@ export default function ReportsPage() {
       setUploadProgress("Done!");
       setReports((prev) => [data.report, ...prev]);
 
+      // Store summary in sessionStorage with the correct date-key format
+      if (data.userId) {
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        const storageKey = `user_summary:${data.userId}:${dateStr}`;
+
+        const summaryText =
+          data.summary ||
+          (data.report?.extractedData?.nlp?.summary
+            ? `${data.report.fileName}: ${data.report.extractedData.nlp.summary}`
+            : data.report?.rawText
+            ? `${data.report.fileName ?? "Report"}: ${(data.report.rawText as string).replace(/\s+/g, " ").slice(0, 800)}`
+            : null);
+
+        if (summaryText) {
+          sessionStorage.setItem(storageKey, summaryText);
+        }
+      }
+
       // Reset after brief success display
       setTimeout(() => {
         setUploading(false);
