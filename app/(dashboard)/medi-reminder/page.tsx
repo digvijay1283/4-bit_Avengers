@@ -67,9 +67,20 @@ export default function MediReminderPage() {
   const [loading, setLoading] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [missedAlerts, setMissedAlerts] = useState<
-    { medicineId: string; medicineName: string; missedCount: number; guardianCalled?: boolean; guardianName?: string; callingInProgress?: boolean }[]
+    { medicineId: string; medicineName: string; missedCount: number; guardianCalled?: boolean; guardianName?: string; callingInProgress?: boolean; callError?: string }[]
   >([]);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+  const [testingGuardianCall, setTestingGuardianCall] = useState(false);
+  const [guardianTestResult, setGuardianTestResult] = useState<
+    | {
+        success: boolean;
+        message: string;
+        code?: number;
+        status?: number;
+        callSid?: string;
+      }
+    | null
+  >(null);
 
   // â”€â”€â”€ Fetch medicines from API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchMedicines = useCallback(async () => {
@@ -213,24 +224,41 @@ export default function MediReminderPage() {
                     callingInProgress: false,
                     guardianCalled: true,
                     guardianName: data.guardianName,
+                    callError: undefined,
                   }
                 : a
             )
           );
         } else {
+          toast.error(data.error ?? "Failed to place guardian call", {
+            icon: "⚠️",
+          });
           setMissedAlerts((prev) =>
             prev.map((a) =>
               a.medicineId === medicineId
-                ? { ...a, callingInProgress: false }
+                ? {
+                    ...a,
+                    callingInProgress: false,
+                    guardianCalled: false,
+                    callError: data.error ?? "Failed to place guardian call",
+                  }
                 : a
             )
           );
         }
-      } catch {
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to place guardian call";
+        toast.error(message, { icon: "⚠️" });
         setMissedAlerts((prev) =>
           prev.map((a) =>
             a.medicineId === medicineId
-              ? { ...a, callingInProgress: false }
+              ? {
+                  ...a,
+                  callingInProgress: false,
+                  guardianCalled: false,
+                  callError: message,
+                }
               : a
           )
         );
@@ -238,6 +266,52 @@ export default function MediReminderPage() {
     },
     []
   );
+
+  // Manual test call (temporary debugging action)
+  const handleGuardianTestCall = useCallback(async () => {
+    setTestingGuardianCall(true);
+    setGuardianTestResult(null);
+    try {
+      const res = await fetch("/api/medicines/alert-guardian/test", {
+        method: "POST",
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setGuardianTestResult({
+          success: true,
+          message: data.message || "Test call initiated",
+          callSid: data.callSid,
+        });
+        toast.success(
+          `Guardian test call initiated${data.callSid ? ` (SID: ${data.callSid})` : ""}`,
+          { icon: "📞", duration: 7000 }
+        );
+      } else {
+        setGuardianTestResult({
+          success: false,
+          message: data.error || "Test call failed",
+          code: data.twilioCode,
+          status: data.httpStatus ?? res.status,
+        });
+        toast.error(
+          `Test call failed${data.twilioCode ? ` (Twilio ${data.twilioCode})` : ""}: ${
+            data.error || "Unknown error"
+          }`,
+          { icon: "⚠️", duration: 8000 }
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Network error";
+      setGuardianTestResult({
+        success: false,
+        message,
+      });
+      toast.error(`Test call failed: ${message}`, { icon: "⚠️" });
+    } finally {
+      setTestingGuardianCall(false);
+    }
+  }, []);
 
   // â”€â”€â”€ Compute daily progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const progress: DailyProgress = {
@@ -275,6 +349,18 @@ export default function MediReminderPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleGuardianTestCall}
+              disabled={testingGuardianCall}
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+            >
+              {testingGuardianCall ? (
+                <span className="animate-spin h-4 w-4 border-2 border-amber-700 border-t-transparent rounded-full" />
+              ) : (
+                <span>📞</span>
+              )}
+              {testingGuardianCall ? "Testing Call..." : "Test Guardian Call"}
+            </button>
             <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-gray-100 text-sm text-slate-500">
               <span className="material-symbols-outlined text-lg">
                 calendar_month
@@ -294,6 +380,30 @@ export default function MediReminderPage() {
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
           {/* Left â€” Main content */}
           <div className="flex-1 flex flex-col gap-6">
+            {guardianTestResult && (
+              <div
+                className={`rounded-xl border px-4 py-3 text-sm ${
+                  guardianTestResult.success
+                    ? "bg-green-50 border-green-200 text-green-800"
+                    : "bg-red-50 border-red-200 text-red-800"
+                }`}
+              >
+                <p className="font-semibold">
+                  {guardianTestResult.success
+                    ? "Guardian test call initiated"
+                    : "Guardian test call failed"}
+                </p>
+                <p className="mt-1">{guardianTestResult.message}</p>
+                {(guardianTestResult.code || guardianTestResult.status || guardianTestResult.callSid) && (
+                  <p className="mt-1 text-xs opacity-90">
+                    {guardianTestResult.code ? `Twilio code: ${guardianTestResult.code} • ` : ""}
+                    {guardianTestResult.status ? `HTTP: ${guardianTestResult.status} • ` : ""}
+                    {guardianTestResult.callSid ? `Call SID: ${guardianTestResult.callSid}` : ""}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Main tab switcher: Medicines / Medical Tests */}
             <MainTabSwitcher activeTab={mainTab} onTabChange={setMainTab} />
 

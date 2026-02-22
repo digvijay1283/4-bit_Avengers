@@ -17,9 +17,12 @@ import {
   Loader2,
   ClipboardList,
   RefreshCw,
+  X,
+  Bot,
 } from "lucide-react";
 import Link from "next/link";
 import MentalHealthQuestionnaire from "./MentalHealthQuestionnaire";
+import ChatAssistant from "@/components/chat/ChatAssistant";
 import { useSession } from "@/hooks/useSession";
 
 type Mood = "great" | "good" | "okay" | "low" | "bad";
@@ -165,6 +168,7 @@ export default function MentalHealthContent() {
   const [recomRaw, setRecomRaw] = useState<Record<string, unknown> | null>(null);
   const [recomError, setRecomError] = useState<string | null>(null);
   const [loadingRecom, setLoadingRecom] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const { user } = useSession();
 
   const checkQuestionnaire = useCallback(async () => {
@@ -273,14 +277,30 @@ export default function MentalHealthContent() {
             Track your mood, manage stress, and build healthy habits.
           </p>
         </div>
-        <Link
-          href="/chat"
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0F4D2A] transition shadow-sm"
-        >
-          <MessageCircle className="h-4 w-4" />
-          Talk to AI
-        </Link>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0F4D2A] transition shadow-sm"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {showChat ? "Hide Chat" : "Talk to AI"}
+          </button>
+          <Link
+            href="/assistant"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0F172A] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1E293B] transition shadow-sm"
+          >
+            <Bot className="h-4 w-4" />
+            Voice Assistant
+          </Link>
+        </div>
       </div>
+
+      {/* Chat Assistant - Full Width when shown */}
+      {showChat && (
+        <div className="h-[600px] w-full">
+          <ChatAssistant onClose={() => setShowChat(false)} />
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left column */}

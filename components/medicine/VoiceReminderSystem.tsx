@@ -52,7 +52,7 @@ interface VoiceReminderSystemProps {
 
 const SNOOZE_MINUTES = 5;
 const NO_RESPONSE_TIMEOUT_MS = 60_000;
-const MISSED_ALERT_THRESHOLD = 2;
+const MISSED_ALERT_THRESHOLD = 5;
 
 const TAKEN_WORDS = [
   "taken",
@@ -311,16 +311,16 @@ export default function VoiceReminderSystem({
           onMissedStreak(active.medicineId, idleMisses);
           onGuardianAlert(active.medicineId, active.medicineName, idleMisses);
           toast.error(
-            `No response twice for ${active.medicineName}. Triggering guardian alert.`,
+            `No response ${MISSED_ALERT_THRESHOLD} times for ${active.medicineName}. Triggering guardian alert.`,
             { duration: 6000 }
           );
         } else {
-          void onDoseAction(active.medicineId, "snoozed", active.scheduledTime);
+          void onDoseAction(active.medicineId, "missed", active.scheduledTime);
           const retryAt = Date.now() + SNOOZE_MINUTES * 60 * 1000;
           snoozedRef.current.set(active.key, retryAt);
           alertedRef.current.delete(active.key);
           toast(
-            `No response in 1 minute. Alarm snoozed for ${SNOOZE_MINUTES} minutes.`,
+            `No response in 1 minute. Dose marked as missed and reminder snoozed for ${SNOOZE_MINUTES} minutes.`,
             { duration: 5000 }
           );
         }

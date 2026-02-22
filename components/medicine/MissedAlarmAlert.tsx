@@ -11,6 +11,7 @@ interface MissedAlarmAlertProps {
     guardianCalled?: boolean;
     guardianName?: string;
     callingInProgress?: boolean;
+    callError?: string;
   }[];
   onDismiss: (medicineId: string) => void;
 }
@@ -64,6 +65,11 @@ export default function MissedAlarmAlert({
                     Guardian{alert.guardianName ? ` (${alert.guardianName})` : ""} has been
                     alerted via phone call
                   </span>
+                </div>
+              ) : alert.callError ? (
+                <div className="mt-3 flex items-center gap-2 text-xs text-red-700 bg-red-50 rounded-lg px-3 py-2 border border-red-200">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Guardian call failed: {alert.callError}</span>
                 </div>
               ) : (
                 <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
