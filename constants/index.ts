@@ -61,8 +61,6 @@ const USER_NAV_ITEMS = [
   { label: "Reports", href: ROUTES.REPORTS, icon: "FileText" },
   { label: "Share", href: ROUTES.SHARE, icon: "QrCode" },
   { label: "Mental Health", href: ROUTES.MENTAL_HEALTH, icon: "Brain" },
-  { label: "Chat", href: ROUTES.CHAT, icon: "MessageCircle" },
-  { label: "AI Assistant", href: ROUTES.ASSISTANT, icon: "Bot" },
   { label: "Profile", href: ROUTES.PROFILE, icon: "User" },
 ] as const;
 

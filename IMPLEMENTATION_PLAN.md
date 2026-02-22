@@ -1,851 +1,784 @@
-# VitalAI — Implementation Plan
+# VitalAI — System Architecture & Implementation Plan
 
-> **Preventive Health Companion** | Hackathon MVP  
-> **Stack:** Next.js 15 · React 19 · TypeScript · Tailwind CSS 4 · MongoDB (Mongoose) · Google Fit API  
+> **Preventive Health Companion** — AI-Powered Health Monitoring Platform  
+> **Stack:** Next.js 16 · React 19 · TypeScript 5.9 · Tailwind CSS 4 · MongoDB Atlas (Mongoose 9) · n8n AI Workflows · Twilio · Cloudinary  
 > **Repo:** [4-bit_Avengers](https://github.com/digvijay1283/4-bit_Avengers)
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#1-architecture-overview)
-2. [Directory Structure (Final)](#2-directory-structure-final)
-3. [Tech Stack & Dependencies](#3-tech-stack--dependencies)
-4. [Phase 0 — Project Setup & Auth](#phase-0--project-setup--auth)
-5. [Phase 1 — Profile Module](#phase-1--profile-module)
-6. [Phase 2 — Wearable Integration (Google Fit)](#phase-2--wearable-integration-google-fit)
-7. [Phase 3 — Dashboard (Real-Time Health View)](#phase-3--dashboard-real-time-health-view)
-8. [Phase 4 — Medicine Reminder System (OCR + Scheduler)](#phase-4--medicine-reminder-system-ocr--scheduler)
-9. [Phase 5 — AI Chatbot (Health Intelligence Engine)](#phase-5--ai-chatbot-health-intelligence-engine)
-10. [Phase 6 — Mental Health Tracker](#phase-6--mental-health-tracker)
-11. [Phase 7 — Smart Alerts Module](#phase-7--smart-alerts-module)
-12. [Phase 8 — Smart Reports](#phase-8--smart-reports)
-13. [Phase 9 — Upload Past Medical Reports](#phase-9--upload-past-medical-reports)
-14. [Data Models (MongoDB Collections)](#data-models-mongodb-collections)
-15. [API Routes Summary](#api-routes-summary)
-16. [Environment Variables](#environment-variables)
-17. [Implementation Checklist](#implementation-checklist)
-
-## Database Decision Update (MongoDB)
-
-This project now uses **MongoDB Atlas + Mongoose** as the primary database.
-
-- Source of truth connection is `MONGODB_URI` in `.env.local`
-- Database name is controlled with `MONGODB_DB_NAME`
-- Current user model lives in `models/User.ts`
-- Connection utility lives in `lib/mongodb.ts`
-- Index bootstrap endpoint: `GET /api/health/db`
-
-### User Index Strategy (Implemented)
-
-- `uq_users_email` → unique index on `email`
-- `uq_users_phone_sparse` → unique sparse index on `phone`
-- `idx_users_role_status` → compound index on `role + status`
-- `idx_users_createdAt_desc` → descending index on `createdAt`
-
-These indexes are defined at schema level in `models/User.ts` and synced via `User.ensureIndexes()`.
+1. [System Architecture](#1-system-architecture)
+2. [Tech Stack & Dependencies](#2-tech-stack--dependencies)
+3. [Directory Structure](#3-directory-structure)
+4. [Module Breakdown](#4-module-breakdown)
+   - [M0 — Authentication & RBAC](#m0--authentication--rbac)
+   - [M1 — User Profile](#m1--user-profile)
+   - [M2 — Health Dashboard](#m2--health-dashboard)
+   - [M3 — Medicine Reminder System](#m3--medicine-reminder-system)
+   - [M4 — Medical Reports & Upload](#m4--medical-reports--upload)
+   - [M5 — Mental Health & AI Chat](#m5--mental-health--ai-chat)
+   - [M6 — AI Voice Assistant (Live2D)](#m6--ai-voice-assistant-live2d)
+   - [M7 — Doctor Console & QR Sharing](#m7--doctor-console--qr-sharing)
+   - [M8 — Alerts & Notifications](#m8--alerts--notifications)
+5. [Data Models (MongoDB)](#5-data-models-mongodb)
+6. [API Routes Reference](#6-api-routes-reference)
+7. [External Service Integrations](#7-external-service-integrations)
+8. [Environment Variables](#8-environment-variables)
+9. [Redundant Code — Cleanup Checklist](#9-redundant-code--cleanup-checklist)
 
 ---
 
-## 1. Architecture Overview
+## 1. System Architecture
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                     FRONTEND (Next.js)                   │
-│  ┌────────┐  ┌───────────┐  ┌──────────┐  ┌──────────┐  │
-│  │  Auth  │  │ Dashboard │  │ Chatbot  │  │ Reports  │  │
-│  └───┬────┘  └─────┬─────┘  └────┬─────┘  └────┬─────┘  │
-│      │             │              │              │        │
-│  ┌───┴─────────────┴──────────────┴──────────────┴───┐   │
-│  │              Next.js API Routes (server)           │   │
-│  └───┬─────────────┬──────────────┬──────────────┬───┘   │
-└──────┼─────────────┼──────────────┼──────────────┼───────┘
-       │             │              │              │
-  ┌────▼────┐  ┌─────▼─────┐  ┌────▼────┐  ┌─────▼─────┐
-  │MongoDB  │  │Google Fit │  │  OCR    │  │  AI/LLM   │
-  │(Mongoose│  │   API     │  │(Tesser- │  │(Gemini /  │
-  │ + Atlas)│  │           │  │ act.js) │  │ OpenAI)   │
-  └─────────┘  └───────────┘  └─────────┘  └───────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (Next.js App Router)                    │
+│                                                                          │
+│  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌─────────┐ ┌──────────────┐  │
+│  │   Auth   │ │ Dashboard │ │ Medicine │ │ Reports │ │ Mental Health│  │
+│  │  (JWT)   │ │ (Vitals)  │ │(OCR+TTS) │ │(Upload) │ │(Chat+Voice) │  │
+│  └────┬─────┘ └─────┬─────┘ └────┬─────┘ └────┬────┘ └──────┬───────┘  │
+│       │              │            │             │              │          │
+│  ┌────┴──────────────┴────────────┴─────────────┴──────────────┴─────┐   │
+│  │                  Next.js API Routes (Server-side)                  │   │
+│  │           RBAC middleware · JWT verification · Auth guards         │   │
+│  └────┬──────────┬──────────────┬──────────────┬──────────────┬──────┘   │
+└───────┼──────────┼──────────────┼──────────────┼──────────────┼──────────┘
+        │          │              │              │              │
+   ┌────▼────┐ ┌───▼────┐  ┌─────▼──────┐ ┌────▼─────┐ ┌──────▼──────┐
+   │MongoDB  │ │Tesser- │  │ n8n AI     │ │Cloudinary│ │   Twilio    │
+   │ Atlas   │ │act.js  │  │ Workflows  │ │  (Files) │ │ (Voice/SMS) │
+   │(Mongoose│ │ (OCR)  │  │(synthomind │ │          │ │             │
+   │  ODM)   │ │        │  │  .cloud)   │ │          │ │             │
+   └─────────┘ └────────┘  └────────────┘ └──────────┘ └─────────────┘
 ```
 
-**Key design decisions:**
+### Key Architectural Decisions
 
-- **Next.js App Router** — file-based routing, server components by default
-- **MongoDB Atlas + Mongoose** — primary database with schema-level indexes and validation
-- **Server-side AI calls** — all LLM/OCR calls happen in API routes (secrets never leak to client)
-- **Google Fit REST API** — OAuth 2.0 token flow, data fetched server-side and cached in MongoDB
+| Decision | Rationale |
+|----------|-----------|
+| **Next.js App Router** | File-based routing, server components by default, API routes colocated |
+| **MongoDB Atlas + Mongoose** | Flexible schema for health data, schema-level indexes, cloud-hosted |
+| **Server-side AI/OCR calls** | All LLM, OCR, and external webhook calls happen in API routes — secrets never leak to client |
+| **n8n webhook orchestration** | AI chatbot, daily summaries, mental health recommendations, and report summaries all powered by n8n workflows hosted at `synthomind.cloud` |
+| **RBAC (Role-Based Access)** | Two roles: `user` (patient) and `doctor`. Route guards enforce role-specific access |
+| **JWT httpOnly cookies** | 7-day expiry, bcrypt (12 rounds) password hashing, no client-side token storage |
+| **SSE for proactive messages** | Server-Sent Events channel per chat session for real-time proactive health nudges |
 
 ---
 
-## 2. Directory Structure (Actual)
+## 2. Tech Stack & Dependencies
 
-> ✅ = exists · ⬜ = planned
-
-```
-D:\Cavista\
-│
-├── app/
-│   ├── globals.css                   ✅ Theme tokens, Tailwind base
-│   ├── layout.tsx                    ✅ Root layout (Manrope font, suppressHydrationWarning)
-│   ├── page.tsx                      ✅ Landing / Home page
-│   │
-│   ├── (auth)/                       ✅ Auth route group
-│   │   ├── layout.tsx                ✅ Split-screen branding layout
-│   │   ├── login/page.tsx            ✅ Login form → /api/auth/login
-│   │   └── signup/page.tsx           ✅ Signup form → /api/auth/signup
-│   │
-│   ├── (dashboard)/                  ✅ Authenticated app shell
-│   │   ├── layout.tsx                ✅ Header + MobileNav shell
-│   │   ├── dashboard/page.tsx        ✅ /dashboard → health overview + chat modal
-│   │   ├── medi-reminder/page.tsx    ✅ /medi-reminder → medicine management
-│   │   ├── chat/page.tsx             ✅ /chat → standalone chat page
-│   │   ├── profile/page.tsx          ⬜ /profile
-│   │   ├── mental-health/page.tsx    ⬜ /mental-health
-│   │   ├── reports/page.tsx          ⬜ /reports
-│   │   └── upload/page.tsx           ⬜ /upload → past medical reports
-│   │
-│   └── api/
-│       ├── auth/
-│       │   ├── login/route.ts        ✅ POST — verify creds, set JWT cookie
-│       │   ├── signup/route.ts       ✅ POST — create user, set JWT cookie
-│       │   └── me/route.ts           ✅ GET — read JWT, return userId/email/role
-│       ├── health/
-│       │   └── db/route.ts           ✅ GET — MongoDB health-check + index sync
-│       ├── chat/
-│       │   └── route.ts              ✅ POST — proxy to chatbot webhook
-│       ├── ocr/
-│       │   └── extract/route.ts      ✅ POST — OCR extraction
-│       ├── twilio/
-│       │   └── route.ts              ✅ POST — SMS alert dispatch
-│       ├── google-fit/route.ts       ⬜ Wearable data fetch
-│       ├── reports/route.ts          ⬜ PDF report generation
-│       └── alerts/route.ts           ⬜ Alert evaluation
-│
-├── components/
-│   ├── ui/                           ✅ Button, Card, Badge, Spinner, ProgressBar
-│   ├── layout/                       ✅ Header, Footer, MobileNav
-│   ├── dashboard/                    ✅ HeartRateCard, StepsCard, SleepCard,
-│   │                                    BloodPressureCard, RiskScoreBadge,
-│   │                                    WeeklyTrendChart, LiveMonitoring,
-│   │                                    HeroSection, MissionSection, SpecialistGrid,
-│   │                                    ProfileSnippet, RemindersWidget, DailyInsight
-│   ├── medicine/                     ✅ MedicineCard, AudioAlertToggle,
-│   │                                    DailyProgressWidget, LowStockAlert,
-│   │                                    MainTabSwitcher, SubTabBar, MedicalTestCard
-│   ├── chat/                         ✅ ChatWindow, ChatMessage, ChatInput,
-│   │                                    ChatDashboardModal
-│   ├── mental-health/                ⬜ MoodScore, StressIndicator, BreathingExercise
-│   ├── reports/                      ⬜ ReportCard, ReportViewer
-│   └── profile/                      ⬜ ProfileForm, EmergencyContacts
-│
-├── models/
-│   └── User.ts                       ✅ Mongoose schema, 5 named indexes, userId (UUID)
-│
-├── hooks/
-│   ├── index.ts                      ✅
-│   ├── useGoogleFit.ts              ⬜
-│   ├── useMedicine.ts               ⬜
-│   └── useChat.ts                   ⬜
-│
-├── lib/
-│   ├── mongodb.ts                    ✅ Mongoose connection (global cache)
-│   ├── auth.ts                       ✅ hashPassword, comparePassword, signAuthToken, verifyAuthToken
-│   ├── medicalReportParser.ts        ✅ Parse OCR output → structured data
-│   ├── uuid.ts                       ✅ Client-safe randomUUID helper
-│   ├── utils.ts                      ✅ cn(), formatDate()
-│   ├── google-fit.ts                 ⬜ Google Fit API client
-│   ├── ocr.ts                        ⬜ OCR processing logic
-│   ├── ai.ts                         ⬜ LLM client (Gemini / OpenAI)
-│   └── pdf.ts                        ⬜ PDF report generation
-│
-├── services/
-│   ├── api.ts                        ← Base fetch client (existing)
-│   ├── auth.service.ts               ← Auth operations
-│   ├── health.service.ts             ← Health data CRUD
-│   ├── medicine.service.ts           ← Medicine CRUD
-│   └── report.service.ts             ← Report generation
-│
-├── stores/
-│   └── index.ts                      ← Zustand stores (auth, health, UI)
-│
-├── types/
-│   ├── index.ts                      ← Shared types (existing)
-│   ├── health.ts                     ← HealthData, Vitals, RiskScore
-│   ├── medicine.ts                   ← Medicine, Prescription, Reminder
-│   ├── chat.ts                       ← ChatMessage, ChatSession
-│   └── report.ts                     ← Report, ReportType
-│
-├── constants/
-│   └── index.ts                      ← Routes, thresholds, config (existing)
-│
-└── public/
-    ├── icons/                        ← App icons, favicons
-    └── images/                       ← Static images
-```
-
----
-
-## 3. Tech Stack & Dependencies
-
-### Installed & Active ✅
+### Production Dependencies
 
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `next` | 16.1.6 | Framework (App Router + Turbopack) |
-| `react` / `react-dom` | 19.2.4 | UI |
+| `react` / `react-dom` | 19.2.4 | UI framework |
 | `typescript` | 5.9.3 | Type safety (strict mode) |
-| `tailwindcss` + `@tailwindcss/postcss` | 4.2.0 | Styling |
-| `mongoose` | 9.2.1 | MongoDB ODM (Atlas) |
+| `tailwindcss` + `@tailwindcss/postcss` | 4.2.0 | Utility-first CSS |
+| `mongoose` | 9.2.1 | MongoDB ODM |
 | `bcryptjs` | 3.0.3 | Password hashing (12 rounds) |
 | `jsonwebtoken` | 9.0.3 | JWT auth (7-day httpOnly cookies) |
-| `lucide-react` | latest | Icons |
-| `recharts` | latest | Dashboard charts |
-| `framer-motion` | latest | Animations |
-| `clsx` | latest | Conditional classes |
-| `geist` | latest | Geist font |
+| `tesseract.js` | 7.0.0 | Client/server OCR for prescriptions & reports |
+| `cloudinary` | 2.9.0 | Medical report file hosting |
+| `twilio` | 5.12.2 | Voice calls for missed medicine alerts |
+| `pixi.js` + `pixi-live2d-display` | 7.4.3 / 0.4.0 | Live2D avatar rendering (AI Voice Assistant) |
+| `recharts` | 3.7.0 | Dashboard health charts |
+| `framer-motion` | 12.34.3 | UI animations |
+| `lucide-react` | 0.575.0 | Icon library |
+| `qrcode.react` | 4.2.0 | QR code generation for report sharing |
+| `react-hot-toast` | 2.6.0 | Toast notifications |
+| `clsx` | 2.1.1 | Conditional CSS class joining |
+| `geist` | 1.7.0 | Geist font family |
+| `@splinetool/react-spline` | 4.1.0 | ⚠️ Unused — see cleanup checklist |
 
-### Still To Install ⬜
+### Dev Dependencies
 
-| Package | Purpose | Command |
+| Package | Purpose |
+|---------|---------|
+| `eslint` + `eslint-config-next` | Linting |
+| `postcss` | CSS processing |
+| `@types/node`, `@types/react`, `@types/react-dom`, `@types/jsonwebtoken` | TypeScript type definitions |
+
+---
+
+## 3. Directory Structure
+
+```
+4-bit_Avengers/
+│
+├── app/
+│   ├── globals.css                      Theme tokens, Tailwind base styles
+│   ├── layout.tsx                       Root layout (Manrope font, SessionProvider)
+│   ├── page.tsx                         Landing / home page (public)
+│   │
+│   ├── (auth)/                          Auth route group (public)
+│   │   ├── layout.tsx                   Split-screen branding layout
+│   │   ├── login/page.tsx               Login form → POST /api/auth/login
+│   │   └── signup/page.tsx              Signup form → POST /api/auth/signup
+│   │
+│   ├── (dashboard)/                     Authenticated app shell
+│   │   ├── layout.tsx                   Header + MobileNav + auth guard
+│   │   ├── dashboard/
+│   │   │   ├── layout.tsx               Dashboard sub-layout
+│   │   │   └── page.tsx                 Health overview + chat modal
+│   │   ├── medi-reminder/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx                 Medicine management + OCR + voice alerts
+│   │   ├── reports/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx                 Report list + upload + OCR + AI summary
+│   │   ├── mental-health/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx                 Questionnaire + mood + embedded AI chat
+│   │   ├── assistant/
+│   │   │   └── page.tsx                 Voice AI + Live2D avatar
+│   │   ├── profile/
+│   │   │   └── page.tsx                 User/doctor profile CRUD
+│   │   ├── share/
+│   │   │   └── page.tsx                 QR-based report sharing
+│   │   ├── upload/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx                 Standalone report upload
+│   │   ├── chat/
+│   │   │   └── page.tsx                 ⚠️ ORPHANED — to be removed
+│   │   └── doctor/
+│   │       ├── layout.tsx
+│   │       ├── page.tsx                 Doctor console home
+│   │       ├── profile/page.tsx         Doctor profile view
+│   │       ├── patient/[id]/page.tsx    Patient detail (vitals, reports, meds)
+│   │       └── shared/[token]/page.tsx  Shared patient data viewer
+│   │
+│   ├── api/                             29 route handlers (see §6)
+│   │   ├── auth/                        login, signup, me, logout
+│   │   ├── chat/                        AI chat proxy + SSE stream
+│   │   ├── daily-summary/               n8n daily health summary
+│   │   ├── doctor/patient/              Patient lookup (doctor-only)
+│   │   ├── health/                      DB check + live vitals
+│   │   ├── medicine/                    OCR prescription extraction
+│   │   ├── medicines/                   CRUD + dose logging + guardian alerts
+│   │   ├── mental-health/               Questionnaire + recommendations
+│   │   ├── model/                       Live2D asset serving
+│   │   ├── ocr/                         ⚠️ DUPLICATE — to be removed
+│   │   ├── profile/                     Profile GET/PATCH
+│   │   ├── reports/                     Report CRUD + upload pipeline
+│   │   ├── report-upload-summary/       AI report summary
+│   │   ├── routine-recommendation/      n8n routine suggestions
+│   │   ├── share/                       QR share create + resolve
+│   │   └── twilio/                      Voice call + status check
+│   │
+│   └── test/                            ⚠️ DEV-ONLY test harnesses
+│       ├── ocr/page.tsx                 OCR test page
+│       └── twilio/page.tsx              Twilio test page
+│
+├── components/
+│   ├── assistant/                       Live2DViewer.tsx
+│   ├── chat/                            ChatAssistant, ChatWindow, ChatMessage,
+│   │                                    ChatInput, ChatDashboardModal,
+│   │                                    VoiceModeOverlay, SplineScene(⚠️)
+│   ├── dashboard/                       14 dashboard widgets (see §M2)
+│   ├── doctor/                          9 doctor console components (see §M7)
+│   ├── layout/                          Header, Footer(⚠️), MobileNav
+│   ├── medicine/                        12 medicine components (see §M3)
+│   ├── mental-health/                   MentalHealthContent, MentalHealthQuestionnaire
+│   ├── profile/                         7 profile components (see §M1)
+│   ├── reports/                         ReportsPageContent
+│   ├── ui/                              Badge, Button, Card, ProgressBar, Spinner
+│   └── upload/                          UploadContent
+│
+├── models/                              Top-level Mongoose models
+│   ├── User.ts                          User auth + profile (all roles)
+│   ├── HealthRecord.ts                  Health data entries (vitals, labs, reports)
+│   ├── Report.ts                        Uploaded medical report files
+│   └── ShareSession.ts                  QR-based share sessions
+│
+├── lib/
+│   ├── auth.ts                          Password hashing, JWT sign/verify
+│   ├── mongodb.ts                       Mongoose connection singleton
+│   ├── rbac.ts                          RBAC guards (getAuthUser, requireRole, requireAuth)
+│   ├── cloudinary.ts                    Cloudinary upload helper
+│   ├── medicalReportParser.ts           OCR text → structured medical data
+│   ├── reportNlp.ts                     NLP extraction (meds, findings, follow-ups)
+│   ├── chatSessions.ts                  In-memory SSE session registry
+│   ├── proactiveMessages.ts             Proactive health nudge message bank
+│   ├── utils.ts                         cn() (class merge), formatDate()
+│   ├── uuid.ts                          Browser-safe randomUUID helper
+│   └── models/                          Domain-specific Mongoose models
+│       ├── Medicine.ts                  Medicine schema + quantity tracking
+│       ├── DoseLog.ts                   Dose action logging
+│       └── MentalHealthQuestionnaire.ts Questionnaire responses + scores
+│
+├── hooks/
+│   ├── index.ts                         useLocalStorage, useMediaQuery
+│   ├── useDailySummary.ts               Cached daily AI summary (per user/day)
+│   ├── useLiveHealth.ts                 Live vitals from /api/health/live
+│   ├── useProfile.ts                    User profile data + helpers
+│   └── useSession.tsx                   Auth session context (user, status, logout)
+│
+├── constants/index.ts                   Routes, nav items, health thresholds, pagination
+├── types/                               index.ts, health.ts, medicine.ts
+├── services/api.ts                      ⚠️ UNUSED — to be removed
+├── stores/index.ts                      ⚠️ EMPTY — to be removed
+├── model/                               Live2D Hiyori model assets
+│   ├── Hiyori.model3.json
+│   ├── Hiyori.moc3, .physics3.json, .pose3.json, .userdata3.json, .cdi3.json
+│   ├── Hiyori.2048/                     Texture atlas
+│   └── motions/                         Animation clips
+│
+└── public/
+    └── live2dcubismcore.min.js          Live2D Cubism core runtime
+```
+
+---
+
+## 4. Module Breakdown
+
+### M0 — Authentication & RBAC
+
+**Status: ✅ Fully Implemented**
+
+Two-role system (patient `user` + `doctor`) with JWT-based auth and server-side RBAC guards.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Password hashing | `lib/auth.ts` | bcryptjs (12 rounds) |
+| JWT tokens | `lib/auth.ts` | 7-day httpOnly cookie (`auth_token`) |
+| RBAC middleware | `lib/rbac.ts` | `getAuthUser()`, `requireRole()`, `requireAuth()` |
+| User model | `models/User.ts` | Email/password, role, profile fields, 5 named indexes |
+| Login API | `app/api/auth/login/route.ts` | POST — verify creds, set cookie |
+| Signup API | `app/api/auth/signup/route.ts` | POST — create user/doctor, set cookie |
+| Current user | `app/api/auth/me/route.ts` | GET — JWT → user identity |
+| Logout | `app/api/auth/logout/route.ts` | POST — clear cookie |
+| Session hook | `hooks/useSession.tsx` | React Context provider: user, status, refresh, logout |
+| Auth pages | `app/(auth)/login`, `app/(auth)/signup` | Split-screen branding layout |
+| DB health check | `app/api/health/db/route.ts` | GET — MongoDB + index sync |
+
+**User Index Strategy (schema-level):**
+- `uq_users_email` — unique on `email`
+- `uq_users_phone_sparse` — unique sparse on `phone`
+- `idx_users_role_status` — compound on `role + status`
+- `idx_users_createdAt_desc` — descending on `createdAt`
+
+---
+
+### M1 — User Profile
+
+**Status: ✅ Fully Implemented**
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Profile API | `app/api/profile/route.ts` | GET (fetch) + PATCH (update) |
+| Profile page | `app/(dashboard)/profile/page.tsx` | Full profile view/edit (488 LOC) |
+| ProfileCard | `components/profile/ProfileCard.tsx` | Avatar + name card |
+| PersonalInfo | `components/profile/PersonalInfo.tsx` | Name, DOB, blood type, address |
+| HealthStatsRow | `components/profile/HealthStatsRow.tsx` | Key health metrics row |
+| DailyRoutine | `components/profile/DailyRoutine.tsx` | Daily routine timeline |
+| QuickBook | `components/profile/QuickBook.tsx` | Appointment booking widget |
+| UpcomingAppointments | `components/profile/UpcomingAppointments.tsx` | Upcoming appointments list |
+| DoctorProfileView | `components/profile/DoctorProfileView.tsx` | Doctor-specific profile view |
+| useProfile hook | `hooks/useProfile.ts` | Profile data + helpers (getAge, getInitials) |
+
+---
+
+### M2 — Health Dashboard
+
+**Status: ✅ Fully Implemented**
+
+Real-time health overview with vitals cards, trends, AI insights, and routine recommendations.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Dashboard page | `app/(dashboard)/dashboard/page.tsx` | Server component assembling all widgets |
+| HeroSection | `components/dashboard/HeroSection.tsx` | Greeting banner + daily summary |
+| LiveMonitoring | `components/dashboard/LiveMonitoring.tsx` | Real-time vitals panel (HR, BP, sleep, steps, risk) |
+| HeartRateCard | `components/dashboard/HeartRateCard.tsx` | Live BPM display |
+| StepsCard | `components/dashboard/StepsCard.tsx` | Step count progress |
+| SleepCard | `components/dashboard/SleepCard.tsx` | Sleep duration breakdown |
+| BloodPressureCard | `components/dashboard/BloodPressureCard.tsx` | Current BP reading |
+| RiskScoreBadge | `components/dashboard/RiskScoreBadge.tsx` | Health risk level badge |
+| WeeklyTrendChart | `components/dashboard/WeeklyTrendChart.tsx` | Weekly vitals trend chart (Recharts) |
+| RoutineRecommendation | `components/dashboard/RoutineRecommendation.tsx` | AI-generated daily routine |
+| DailyInsight | `components/dashboard/DailyInsight.tsx` | AI health insight card |
+| ProfileSnippet | `components/dashboard/ProfileSnippet.tsx` | Compact profile sidebar widget |
+| RemindersWidget | `components/dashboard/RemindersWidget.tsx` | Upcoming medication reminders |
+| MissionSection | `components/dashboard/MissionSection.tsx` | Health mission/goals |
+| SpecialistGrid | `components/dashboard/SpecialistGrid.tsx` | Specialist doctor grid |
+| ChatDashboardModal | `components/chat/ChatDashboardModal.tsx` | Floating FAB + chat modal overlay |
+| Live vitals API | `app/api/health/live/route.ts` | GET — latest HealthRecord vitals |
+| Routine API | `app/api/routine-recommendation/route.ts` | GET — n8n routine recommendations |
+| Daily summary API | `app/api/daily-summary/route.ts` | GET — n8n daily health summary |
+| useLiveHealth | `hooks/useLiveHealth.ts` | Live vitals hook with refresh |
+| useDailySummary | `hooks/useDailySummary.ts` | Cached daily summary (per user/day) |
+
+---
+
+### M3 — Medicine Reminder System
+
+**Status: ✅ Fully Implemented**
+
+Upload prescriptions via OCR → manage medicines → TTS voice reminders → missed-dose guardian alerts.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Medicine page | `app/(dashboard)/medi-reminder/page.tsx` | Full medicine dashboard (400 LOC) |
+| MedicineCard | `components/medicine/MedicineCard.tsx` | Per-medicine card with dose actions |
+| AddMedicineFAB | `components/medicine/AddMedicineFAB.tsx` | FAB to add medicine (manual + OCR) |
+| PrescriptionReviewModal | `components/medicine/PrescriptionReviewModal.tsx` | Review OCR results before save |
+| EditMedicineModal | `components/medicine/EditMedicineModal.tsx` | Edit existing medicine |
+| DailyProgressWidget | `components/medicine/DailyProgressWidget.tsx` | Today's adherence progress |
+| VoiceReminderSystem | `components/medicine/VoiceReminderSystem.tsx` | TTS-based medicine alerts |
+| MissedAlarmAlert | `components/medicine/MissedAlarmAlert.tsx` | Alert for consecutive missed doses |
+| AudioAlertToggle | `components/medicine/AudioAlertToggle.tsx` | Audio on/off toggle |
+| LowStockAlert | `components/medicine/LowStockAlert.tsx` | Low quantity warning |
+| MainTabSwitcher | `components/medicine/MainTabSwitcher.tsx` | Medicines vs. Medical Tests tabs |
+| SubTabBar | `components/medicine/SubTabBar.tsx` | All / Due Soon / Missed sub-tabs |
+| MedicalTestCard | `components/medicine/MedicalTestCard.tsx` | Scheduled test card |
+| Medicine model | `lib/models/Medicine.ts` | Mongoose schema (name, dosage, frequency, times, quantity, missedStreak) |
+| DoseLog model | `lib/models/DoseLog.ts` | Dose action log (taken/snoozed/missed/skipped) |
+| Medicines API | `app/api/medicines/route.ts` | GET (list + today's doses) / POST (create) |
+| Medicine CRUD | `app/api/medicines/[id]/route.ts` | PATCH (update) / DELETE (soft-delete) |
+| Dose logging | `app/api/medicines/[id]/dose/route.ts` | POST — record dose action |
+| OCR extraction | `app/api/medicine/extract-tesseract/route.ts` | POST — image → Tesseract OCR → medicine parsing |
+| Guardian alert | `app/api/medicines/alert-guardian/route.ts` | POST — Twilio call on consecutive misses |
+
+**OCR Pipeline:**
+```
+Upload prescription image
+  → Tesseract.js OCR (server-side)
+    → Regex-based NLP extraction (medicine name, dosage, frequency, instruction)
+      → PrescriptionReviewModal (user confirms/edits)
+        → POST /api/medicines (save to DB)
+```
+
+**Voice Reminder Flow:**
+```
+Scheduled time arrives
+  → VoiceReminderSystem checks due medicines
+    → Browser TTS: "It's time to take [medicine name]"
+      → User marks as taken/snoozed/skipped
+        → If ≥2 consecutive misses → Twilio voice call to guardian
+```
+
+---
+
+### M4 — Medical Reports & Upload
+
+**Status: ✅ Fully Implemented**
+
+Upload medical reports → Cloudinary storage → OCR extraction → AI-generated summary → shareable with doctors.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Reports page | `app/(dashboard)/reports/page.tsx` | Full report management (740 LOC) |
+| Upload page | `app/(dashboard)/upload/page.tsx` | Standalone upload interface |
+| ReportsPageContent | `components/reports/ReportsPageContent.tsx` | Report list/view component |
+| UploadContent | `components/upload/UploadContent.tsx` | Drag-and-drop file upload |
+| Report model | `models/Report.ts` | File URL, OCR text, extracted data, AI summary, status |
+| HealthRecord model | `models/HealthRecord.ts` | Parsed health data entries |
+| Reports API | `app/api/reports/route.ts` | GET (list) / DELETE (remove) |
+| Upload pipeline | `app/api/reports/upload/route.ts` | POST — full pipeline (see below) |
+| Summary API | `app/api/report-upload-summary/route.ts` | POST — n8n AI summary |
+| Parser | `lib/medicalReportParser.ts` | OCR text → structured medical data |
+| NLP engine | `lib/reportNlp.ts` | Regex NLP (medications, findings, follow-ups) |
+| Cloudinary | `lib/cloudinary.ts` | Upload helper → secureUrl + publicId |
+
+**Upload Pipeline:**
+```
+File selected → Upload to Cloudinary (get URL)
+  → Tesseract.js OCR (extract raw text)
+    → medicalReportParser + reportNlp (structured extraction)
+      → Save Report + HealthRecord to MongoDB
+        → Fire n8n webhooks:
+          1. user-report-info (store user data)
+          2. mental-cavista-summary (generate AI summary)
+        → Return summary to client for display
+```
+
+---
+
+### M5 — Mental Health & AI Chat
+
+**Status: ✅ Fully Implemented**
+
+Mental health questionnaire → AI-powered recommendations → embedded text chat → mood tracking → daily wellness tips.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Mental health page | `app/(dashboard)/mental-health/page.tsx` | Server component → MentalHealthContent |
+| MentalHealthContent | `components/mental-health/MentalHealthContent.tsx` | Full page: mood check-in, weekly trend, stress level, AI insight, wellness tips, routine recommendations, embedded chat |
+| MentalHealthQuestionnaire | `components/mental-health/MentalHealthQuestionnaire.tsx` | Multi-step questionnaire (first-time users) |
+| ChatAssistant | `components/chat/ChatAssistant.tsx` | Embedded chat (conversation history, sidebar, search) — toggled via "Talk to AI" button |
+| ChatWindow | `components/chat/ChatWindow.tsx` | Message list + input + auto-scroll + typing indicator |
+| ChatMessage | `components/chat/ChatMessage.tsx` | Rich message renderer (headings, lists, bold) |
+| ChatInput | `components/chat/ChatInput.tsx` | Text input + send (Enter/Shift+Enter) |
+| VoiceModeOverlay | `components/chat/VoiceModeOverlay.tsx` | Full-screen voice mode |
+| Questionnaire model | `lib/models/MentalHealthQuestionnaire.ts` | Answers (0–4) + computed scores |
+| Chat API | `app/api/chat/route.ts` | POST — proxy to n8n chatbot webhook |
+| SSE stream | `app/api/chat/stream/route.ts` | GET — SSE channel for proactive messages |
+| Questionnaire API | `app/api/mental-health/questionnaire/route.ts` | GET/PUT/POST — fetch/autosave/submit |
+| Recommendations API | `app/api/mental-health/recommendations/route.ts` | POST — n8n personalized recommendations |
+
+**Mental Health Flow:**
+```
+First visit → MentalHealthQuestionnaire (multi-step, auto-save)
+  → Submit → compute scores (anxiety, depression, trauma, severeMood, crisis)
+    → Fire n8n webhook (user-data-store)
+      → Fetch personalized recommendations from n8n
+        → Display: mood check-in, weekly chart, stress gauge,
+           AI insight, wellness tips, routine recommendations
+        → "Talk to AI" button opens embedded ChatAssistant
+        → "Voice Assistant" button links to /assistant
+```
+
+**Questionnaire Scoring Categories:**
+- Anxiety score
+- Depression score
+- Trauma score
+- Severe mood score
+- Crisis indicator
+
+---
+
+### M6 — AI Voice Assistant (Live2D)
+
+**Status: ✅ Fully Implemented**
+
+Voice-first AI assistant with animated Live2D avatar (Hiyori), speech recognition, and TTS output.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Assistant page | `app/(dashboard)/assistant/page.tsx` | Full voice assistant (419 LOC) |
+| Live2DViewer | `components/assistant/Live2DViewer.tsx` | Pixi.js Live2D renderer (client-only via next/dynamic) |
+| Model assets | `model/Hiyori.*` | Live2D model files (textures, physics, motions) |
+| Model API | `app/api/model/[...path]/route.ts` | GET — secure model asset serving |
+| Core runtime | `public/live2dcubismcore.min.js` | Live2D Cubism SDK core |
+
+**Voice Flow:**
+```
+User taps mic → SpeechRecognition API (continuous, interim results)
+  → Silence detection (2.2s timeout) → auto-stop
+    → Send final transcript to /api/chat
+      → Receive AI reply + optional audio (base64)
+        → Play server audio OR fallback to browser TTS
+          → Live2D avatar animates during "speaking" phase
+            → Phase cycles: idle → listening → processing → speaking → idle
+```
+
+**Access points:**
+- Mental Health page → "Voice Assistant" button → `/assistant`
+- Mobile nav → "AI" tab → `/assistant`
+
+---
+
+### M7 — Doctor Console & QR Sharing
+
+**Status: ✅ Fully Implemented**
+
+Doctor-specific console to view shared patient data via QR codes, with patient management.
+
+| Component | File(s) | Description |
+|-----------|---------|-------------|
+| Doctor console | `app/(dashboard)/doctor/page.tsx` | Dashboard home (server component) |
+| Doctor profile | `app/(dashboard)/doctor/profile/page.tsx` | Doctor profile view |
+| Patient detail | `app/(dashboard)/doctor/patient/[id]/page.tsx` | Patient vitals/reports/meds (121 LOC) |
+| Shared viewer | `app/(dashboard)/doctor/shared/[token]/page.tsx` | Token-based patient data (566 LOC) |
+| DoctorHero | `components/doctor/DoctorHero.tsx` | Doctor dashboard hero banner |
+| DoctorStatsGrid | `components/doctor/DoctorStatsGrid.tsx` | Stats grid (patients, sessions) |
+| DoctorQuickActions | `components/doctor/DoctorQuickActions.tsx` | Quick action buttons |
+| QRScannerCard | `components/doctor/QRScannerCard.tsx` | QR code scanner |
+| RecentPatientsTable | `components/doctor/RecentPatientsTable.tsx` | Recent patients list |
+| PatientProfileHeader | `components/doctor/PatientProfileHeader.tsx` | Patient header card |
+| PatientVitalsPanel | `components/doctor/PatientVitalsPanel.tsx` | Patient vitals panel |
+| PatientReportSummary | `components/doctor/PatientReportSummary.tsx` | Patient report summaries |
+| PatientMedicineHistory | `components/doctor/PatientMedicineHistory.tsx` | Patient medicine history |
+| Share page | `app/(dashboard)/share/page.tsx` | Patient-side QR sharing (397 LOC) |
+| ShareSession model | `models/ShareSession.ts` | Token, shareCode, report IDs, TTL |
+| Share create | `app/api/share/create/route.ts` | POST — create share session |
+| Share resolve | `app/api/share/[token]/route.ts` | GET — doctor resolves token |
+| Patient count | `app/api/doctor/patient/count/route.ts` | GET — unique patient count |
+| Patient detail | `app/api/doctor/patient/[id]/route.ts` | GET — patient profile + records |
+
+**QR Share Flow:**
+```
+Patient: Select reports → POST /api/share/create
+  → Generate token + shareCode → Display QR code
+    → Doctor: Scan QR / enter code → GET /api/share/[token]
+      → Verify doctor role + check expiry
+        → Return patient profile + selected reports
+```
+
+---
+
+### M8 — Alerts & Notifications
+
+**Status: ✅ Partially Implemented**
+
+| Component | File(s) | Status |
+|-----------|---------|--------|
+| Voice alerts (TTS) | `VoiceReminderSystem.tsx` | ✅ Browser TTS for medicine reminders |
+| Audio toggle | `AudioAlertToggle.tsx` | ✅ Toggle audio alerts on/off |
+| Low stock alert | `LowStockAlert.tsx` | ✅ In-component low stock warning |
+| Missed dose alert | `MissedAlarmAlert.tsx` | ✅ UI alert for consecutive misses |
+| Guardian voice call | `medicines/alert-guardian/route.ts` | ✅ Twilio outbound call |
+| Twilio call API | `twilio/call/route.ts` | ✅ Generic voice call endpoint |
+| Twilio status | `twilio/status/route.ts` | ✅ Config verification |
+| SSE proactive messages | `chat/stream/route.ts` | ✅ Real-time health nudges |
+| Proactive message bank | `lib/proactiveMessages.ts` | ✅ Categorized message library |
+
+---
+
+## 5. Data Models (MongoDB)
+
+### Collections & Mongoose Models
+
+```
+MongoDB: cavista
+│
+├── users                    → models/User.ts
+│   Email, password, role (user/doctor/admin), profile fields,
+│   doctor fields (specialization, license), 5 named indexes
+│
+├── healthrecords            → models/HealthRecord.ts
+│   userId, type (vitals/lab/prescription/note/report),
+│   title, summary, date, source, flexible data field
+│
+├── reports                  → models/Report.ts
+│   userId, fileName, fileUrl, cloudinaryPublicId,
+│   rawOcrText, extractedData, aiSummary, status
+│
+├── sharesessions            → models/ShareSession.ts
+│   patientId, doctorId, token, shareCode,
+│   reportIds, expiresAt (TTL)
+│
+├── medicines                → lib/models/Medicine.ts
+│   userId, name, dosage, frequency, times[], form,
+│   instruction, totalQuantity, remainingQuantity,
+│   missedStreak, isActive
+│
+├── doselogs                 → lib/models/DoseLog.ts
+│   medicineId, userId, scheduledTime, action
+│   (taken/snoozed/missed/skipped), timestamp
+│
+└── mentalhealthquestionnaires → lib/models/MentalHealthQuestionnaire.ts
+    userId, answers (0–4 scale array), completed,
+    scores { anxiety, depression, trauma, severeMood, crisis }
+```
+
+> **Note:** Models are split across two directories: `models/` (top-level) and `lib/models/`. Consider consolidating into a single `models/` directory in a future refactor.
+
+---
+
+## 6. API Routes Reference
+
+### Auth (4 routes)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/auth/signup` | Register user/doctor, issue JWT cookie |
+| POST | `/api/auth/login` | Verify credentials, set JWT cookie |
+| GET | `/api/auth/me` | JWT → current user identity |
+| POST | `/api/auth/logout` | Clear auth cookie |
+
+### Health & Vitals (2 routes)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/health/db` | MongoDB health-check + index sync |
+| GET | `/api/health/live` | Latest live vitals for current user |
+
+### Chat & AI (4 routes)
+
+| Method | Route | Purpose | External |
+|--------|-------|---------|----------|
+| POST | `/api/chat` | Proxy to n8n chatbot webhook | n8n |
+| GET | `/api/chat/stream` | SSE channel for proactive messages | — |
+| GET | `/api/daily-summary` | Today's AI health summary | n8n |
+| GET | `/api/routine-recommendation` | AI daily routine suggestions | n8n |
+
+### Medicines (5 routes)
+
+| Method | Route | Purpose | External |
+|--------|-------|---------|----------|
+| GET/POST | `/api/medicines` | List medicines + create new | — |
+| PATCH/DELETE | `/api/medicines/[id]` | Update / soft-delete medicine | — |
+| POST | `/api/medicines/[id]/dose` | Log dose action | — |
+| POST | `/api/medicine/extract-tesseract` | OCR prescription extraction | Tesseract.js |
+| POST | `/api/medicines/alert-guardian` | Guardian voice call on misses | Twilio |
+
+### Mental Health (2 routes)
+
+| Method | Route | Purpose | External |
+|--------|-------|---------|----------|
+| GET/PUT/POST | `/api/mental-health/questionnaire` | Fetch/autosave/submit questionnaire | n8n |
+| POST | `/api/mental-health/recommendations` | Personalized recommendations | n8n |
+
+### Reports (3 routes)
+
+| Method | Route | Purpose | External |
+|--------|-------|---------|----------|
+| GET/DELETE | `/api/reports` | List / delete reports | — |
+| POST | `/api/reports/upload` | Full upload pipeline | Cloudinary, Tesseract, n8n |
+| POST | `/api/report-upload-summary` | AI summary for uploaded report | n8n |
+
+### Profile (1 route)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET/PATCH | `/api/profile` | Fetch / update user profile |
+
+### Doctor (2 routes)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/doctor/patient/count` | Count unique shared patients |
+| GET | `/api/doctor/patient/[id]` | Patient profile + health records |
+
+### Share (2 routes)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/share/create` | Create share session (QR + code) |
+| GET | `/api/share/[token]` | Resolve share token (doctor-only) |
+
+### Twilio (2 routes)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| POST | `/api/twilio/call` | Initiate outbound voice call |
+| GET | `/api/twilio/status` | Check Twilio config status |
+
+### Model Assets (1 route)
+
+| Method | Route | Purpose |
+|--------|-------|---------|
+| GET | `/api/model/[...path]` | Serve Live2D model files |
+
+### ⚠️ To Remove (1 route)
+
+| Method | Route | Reason |
+|--------|-------|--------|
+| POST | `/api/ocr/extract` | Duplicate of `/api/medicine/extract-tesseract` |
+
+**Total: 29 route handlers (28 after cleanup)**
+
+---
+
+## 7. External Service Integrations
+
+### n8n AI Workflows (synthomind.cloud)
+
+| Webhook | Used By | Purpose |
 |---------|---------|---------|
-| `zustand` | State management | `npm i zustand` |
-| `react-hot-toast` | Toast notifications | `npm i react-hot-toast` |
-| `@react-pdf/renderer` | PDF report generation | `npm i @react-pdf/renderer` |
-| `date-fns` | Date utilities | `npm i date-fns` |
-| `twilio` | SMS alerts (API route exists) | `npm i twilio` |
+| `/webhook/cavista-mental-chatbot` | `/api/chat` | AI health chatbot responses |
+| `/webhook/mental-cavista-chatbot` | `/api/daily-summary` | Daily health summary generation |
+| `/webhook/user-data-store` | `/api/mental-health/questionnaire` | Store user questionnaire data |
+| `/webhook-test/recom-system` | `/api/mental-health/recommendations` | Personalized recommendations |
+| `/webhook/recom-system` | `/api/routine-recommendation` | Daily routine suggestions |
+| `/webhook/user-report-info` | `/api/reports/upload` | Store report data for AI |
+| `/webhook/mental-cavista-summary` | `/api/reports/upload`, `/api/report-upload-summary` | AI report summary |
+
+### Twilio (Voice Calls)
+
+| Feature | Route | Trigger |
+|---------|-------|---------|
+| Guardian alert call | `/api/medicines/alert-guardian` | ≥2 consecutive missed doses |
+| Generic voice call | `/api/twilio/call` | Direct API call |
+
+### Cloudinary (File Hosting)
+
+| Feature | Route | Purpose |
+|---------|-------|---------|
+| Report upload | `/api/reports/upload` | Store medical report PDFs/images |
+
+### Tesseract.js (Local OCR)
+
+| Feature | Route | Purpose |
+|---------|-------|---------|
+| Prescription OCR | `/api/medicine/extract-tesseract` | Extract medicine data from images |
+| Report OCR | `/api/reports/upload` | Extract text from medical reports |
 
 ---
 
-## Phase 0 — Project Setup & Auth ✅
-
-> **Goal:** MongoDB + JWT auth, email/password login, protected dashboard shell.
-
-### Tasks
-
-| # | Task | Status | File(s) |
-|---|------|--------|--------|
-| 0.1 | Project scaffold — Next.js 16 + Tailwind 4 + TypeScript | ✅ | root config files |
-| 0.2 | MongoDB Atlas connection utility + global cache | ✅ | `lib/mongodb.ts` |
-| 0.3 | User model with 5 named indexes, `userId` (UUID) | ✅ | `models/User.ts` |
-| 0.4 | Password hashing + JWT sign/verify helpers | ✅ | `lib/auth.ts` |
-| 0.5 | Signup API route | ✅ | `app/api/auth/signup/route.ts` |
-| 0.6 | Login API route | ✅ | `app/api/auth/login/route.ts` |
-| 0.7 | Current user API route (JWT → userId) | ✅ | `app/api/auth/me/route.ts` |
-| 0.8 | DB health-check + index sync endpoint | ✅ | `app/api/health/db/route.ts` |
-| 0.9 | Auth layout (split-screen branding) | ✅ | `app/(auth)/layout.tsx` |
-| 0.10 | Login page (form, error, redirect) | ✅ | `app/(auth)/login/page.tsx` |
-| 0.11 | Signup page (form, error, redirect) | ✅ | `app/(auth)/signup/page.tsx` |
-| 0.12 | Dashboard shell layout (Header + MobileNav) | ✅ | `app/(dashboard)/layout.tsx` |
-| 0.13 | Route guard / middleware | ⬜ | `middleware.ts` |
-| 0.14 | `useAuth` client-side hook | ⬜ | `hooks/useAuth.ts` |
-| 0.15 | Zustand auth store | ⬜ | `stores/auth.store.ts` |
-
-### `lib/auth.ts` — Current Implementation
-
-```ts
-// hashPassword(plain) → bcrypt hash (12 rounds)
-// comparePassword(plain, hashed) → boolean
-// signAuthToken({ sub, email, role }) → JWT (7 days, httpOnly cookie)
-// verifyAuthToken(token) → AuthTokenPayload
-```
-
----
-
-## Phase 1 — Profile Module ⬜
-
-> **Goal:** User profile CRUD, emergency contacts, basic health info.
-
-### Tasks
-
-| # | Task | Status | File(s) |
-|---|------|--------|---------|
-| 1.1 | Define `UserProfile` type | ⬜ | `types/index.ts` |
-| 1.2 | MongoDB profile helper (upsert on signup) | ⬜ | `lib/mongodb.ts` |
-| 1.3 | Build ProfileForm component | ⬜ | `components/profile/ProfileForm.tsx` |
-| 1.4 | Build EmergencyContacts component | ⬜ | `components/profile/EmergencyContacts.tsx` |
-| 1.5 | Build Profile page | ⬜ | `app/(dashboard)/profile/page.tsx` |
-| 1.6 | Auto-populate profile doc on first signup | ⬜ | `app/api/auth/signup/route.ts` |
-
-### MongoDB Document: `userProfiles` collection — `{uid}`
-
-```ts
-type UserProfile = {
-  uid: string;
-  name: string;
-  email: string;
-  age: number;
-  height: number;       // cm
-  weight: number;       // kg
-  bloodGroup: string;
-  chronicConditions: string[];
-  emergencyContacts: {
-    name: string;
-    phone: string;
-    relation: string;
-  }[];
-  googleFitConnected: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-};
-```
-
----
-
-## Phase 2 — Wearable Integration (Google Fit)
-
-> **Goal:** OAuth to Google Fit, fetch heart rate / steps / sleep / calories, store in MongoDB.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 2.1 | Enable Google Fitness API in GCP console | GCP Console |
-| 2.2 | Configure OAuth consent screen + credentials | GCP Console |
-| 2.3 | Build OAuth flow (redirect → callback → store tokens) | `app/api/google-fit/route.ts` |
-| 2.4 | Build Google Fit API client | `lib/google-fit.ts` |
-| 2.5 | Fetch data types: heart rate, steps, calories, sleep | `lib/google-fit.ts` |
-| 2.6 | Store fetched data in MongoDB | `lib/mongodb.ts` |
-| 2.7 | Build `useGoogleFit` hook | `hooks/useGoogleFit.ts` |
-| 2.8 | Add "Connect Google Fit" button in Profile | `components/profile/ProfileForm.tsx` |
-
-### Google Fit API Endpoints
-
-| Data Type | API Scope |
-|-----------|-----------|
-| Heart Rate | `fitness.heart_rate.read` |
-| Steps | `fitness.activity.read` |
-| Calories | `fitness.activity.read` |
-| Sleep | `fitness.sleep.read` |
-
-### Data Flow
-
-```
-User taps "Connect" → OAuth redirect → Google consent
-→ Callback with auth code → Exchange for tokens
-→ Store tokens in MongoDB (encrypted)
-→ Periodic fetch via API route (or on dashboard load)
-→ Store vitals in MongoDB: `health_data` collection, keyed by `uid + date`
-```
-
-### MongoDB Document: `healthData` collection — `{uid, date}`
-
-```ts
-type DailyHealth = {
-  date: string;
-  heartRate: {
-    avg: number;
-    min: number;
-    max: number;
-    readings: { time: string; value: number }[];
-  };
-  steps: number;
-  distance: number;       // meters
-  caloriesBurned: number;
-  sleep: {
-    totalMinutes: number;
-    deepMinutes: number;
-    lightMinutes: number;
-    remMinutes: number;
-    awakeMinutes: number;
-  };
-  riskScore: "low" | "medium" | "high";
-  updatedAt: Timestamp;
-};
-```
-
----
-
-## Phase 3 — Dashboard (Real-Time Health View)
-
-> **Goal:** Display live vitals, trends, risk score.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 3.1 | Define health data types | `types/health.ts` |
-| 3.2 | Build HeartRateCard (live BPM + sparkline) | `components/dashboard/HeartRateCard.tsx` |
-| 3.3 | Build StepsCard (progress ring) | `components/dashboard/StepsCard.tsx` |
-| 3.4 | Build SleepCard (bar breakdown) | `components/dashboard/SleepCard.tsx` |
-| 3.5 | Build CalorieCard | `components/dashboard/CalorieCard.tsx` |
-| 3.6 | Build RiskScoreBadge (Low/Medium/High) | `components/dashboard/RiskScoreBadge.tsx` |
-| 3.7 | Build WeeklyTrendChart (Recharts line chart) | `components/dashboard/WeeklyTrendChart.tsx` |
-| 3.8 | Build Chart wrapper component | `components/ui/Chart.tsx` |
-| 3.9 | Assemble Dashboard page | `app/(dashboard)/dashboard/page.tsx` |
-| 3.10 | Implement auto-refresh (poll every 5 min) | `hooks/useGoogleFit.ts` |
-| 3.11 | Red highlight for abnormal readings | CSS conditional in cards |
-
-### Risk Score Calculation (MVP — rule-based)
-
-```
-IF heartRate.avg > 100 OR heartRate.avg < 50  → HIGH
-IF sleep.totalMinutes < 300                   → bump score
-IF steps < 2000                               → bump score
-IF missed_medicines > 2                       → bump score
-
-Score mapping:
-  0-1 flags  → LOW
-  2-3 flags  → MEDIUM
-  4+  flags  → HIGH
-```
-
----
-
-## Phase 4 — Medicine Reminder System (OCR + Scheduler)
-
-> **Goal:** Upload prescription → OCR extract → set reminders → TTS + notifications.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 4.1 | Define Medicine & Reminder types | `types/medicine.ts` |
-| 4.2 | Build PrescriptionUpload (image upload + preview) | `components/medicine/PrescriptionUpload.tsx` |
-| 4.3 | Build OCR API route (Tesseract.js or Gemini Vision) | `app/api/ocr/route.ts` |
-| 4.4 | Parse OCR output → extract medicine name, dosage, frequency | `lib/ocr.ts` |
-| 4.5 | Build MedicineList (CRUD) | `components/medicine/MedicineList.tsx` |
-| 4.6 | Build ReminderCard (Taken / Snooze / Reschedule) | `components/medicine/ReminderCard.tsx` |
-| 4.7 | Implement browser notification + TTS | `lib/notifications.ts` |
-| 4.8 | Build AdherenceChart (monthly %) | `components/medicine/AdherenceChart.tsx` |
-| 4.9 | Build Medicine page | `app/(dashboard)/medicine/page.tsx` |
-| 4.10 | Store reminders + compliance in MongoDB | `services/medicine.service.ts` |
-
-### OCR Strategy (MVP)
-
-**Option A — Tesseract.js (client-side, free)**
-```
-Upload image → Tesseract.js OCR → raw text
-→ Send raw text to AI → structured JSON extraction
-```
-
-**Option B — Gemini Vision API (server-side, better accuracy)**
-```
-Upload image → Send to Gemini Vision API
-→ Prompt: "Extract medicine names, dosages, and frequency from this prescription"
-→ Structured JSON response
-```
-
-> **Recommendation:** Use **Option B** (Gemini Vision) for hackathon — better accuracy, less parsing code.
-
-### MongoDB: `medicines` collection — `{uid, medicineId}`
-
-```ts
-type Medicine = {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;          // "twice daily", "every 8 hours"
-  times: string[];             // ["08:00", "20:00"]
-  prescriptionImageUrl?: string;
-  startDate: string;
-  endDate?: string;
-  isActive: boolean;
-  createdAt: Timestamp;
-};
-
-type MedicineLog = {
-  medicineId: string;
-  scheduledTime: string;
-  status: "taken" | "missed" | "snoozed";
-  actionTime?: string;
-  date: string;
-};
-```
-
-### TTS Implementation
-
-```ts
-function announceMedicine(name: string) {
-  const utterance = new SpeechSynthesisUtterance(
-    `It's time to take your medicine: ${name}`
-  );
-  speechSynthesis.speak(utterance);
-}
-```
-
----
-
-## Phase 5 — AI Chatbot (Health Intelligence Engine) ✅
-
-> **Goal:** Conversational health companion via external AI webhook with rich formatted responses.
-
-### Tasks
-
-| # | Task | Status | File(s) |
-|---|------|--------|---------|
-| 5.1 | Chat API proxy route (webhook integration) | ✅ | `app/api/chat/route.ts` |
-| 5.2 | `ChatWindow` — message state, auto-scroll, typing indicator | ✅ | `components/chat/ChatWindow.tsx` |
-| 5.3 | `ChatMessage` — rich output parser (headings, lists, bold) | ✅ | `components/chat/ChatMessage.tsx` |
-| 5.4 | `ChatInput` — textarea, Enter-to-send, Shift+Enter newline | ✅ | `components/chat/ChatInput.tsx` |
-| 5.5 | `ChatDashboardModal` — floating FAB + blurred modal overlay | ✅ | `components/chat/ChatDashboardModal.tsx` |
-| 5.6 | Chat page (standalone) | ✅ | `app/(dashboard)/chat/page.tsx` |
-| 5.7 | `lib/uuid.ts` — client-safe UUID helper | ✅ | `lib/uuid.ts` |
-| 5.8 | `useChat` hook | ⬜ | `hooks/useChat.ts` |
-| 5.9 | Context injection (user vitals + medicine data) | ⬜ | `app/api/chat/route.ts` |
-
-### Webhook Contract
-
-```ts
-// Request payload → POST https://synthomind.cloud/webhook/chatbot-basic
-{ chatId: string; userId: string; sessionId: string; userChat: string }
-
-// Response (single object or array)
-{ output: string } | { output: string }[]
-```
-
-### Output Formatting (implemented in `ChatMessage.tsx`)
-
-The `parseContent()` function converts raw bot text to structured blocks:
-- `**Heading**` / `Short line:` → `<h4>` heading
-- `- item` / `• item` → `<ul>` bullet list
-- `1. item` / `1) item` → `<ol>` numbered list
-- `**bold**` inline → `<strong>`
-- Remaining lines → `<p>` paragraph
-
----
-
-## Phase 6 — Mental Health Tracker
-
-> **Goal:** Track mood, stress, sleep deprivation; suggest exercises.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 6.1 | Build MoodScore component (emoji picker + daily score) | `components/mental-health/MoodScore.tsx` |
-| 6.2 | Build StressIndicator (gauge visualization) | `components/mental-health/StressIndicator.tsx` |
-| 6.3 | Build BreathingExercise component (animated guide) | `components/mental-health/BreathingExercise.tsx` |
-| 6.4 | Implement sentiment analysis on chat logs | `app/api/chat/route.ts` |
-| 6.5 | Calculate stress score from sleep + sentiment | `lib/ai.ts` |
-| 6.6 | Build Mental Health page | `app/(dashboard)/mental-health/page.tsx` |
-| 6.7 | Store mood logs in MongoDB | `models/MentalHealth.ts` |
-
-### Stress Score Calculation (MVP)
-
-```
-Inputs:
-  - Sleep quality (from Google Fit)
-  - Chat sentiment (from AI analysis)
-  - Self-reported mood score (1-10)
-
-Weights:
-  sleep_factor = (sleep < 6hrs) ? 0.4 : 0.1
-  sentiment_factor = negative_ratio * 0.3
-  mood_factor = (10 - mood_score) / 10 * 0.3
-
-stress_score = (sleep_factor + sentiment_factor + mood_factor) * 100
-```
-
-### MongoDB: `mentalHealth` collection — `{uid, date}`
-
-```ts
-type MentalHealthEntry = {
-  date: string;
-  moodScore: number;          // 1-10
-  stressLevel: "low" | "moderate" | "high";
-  stressScore: number;        // 0-100
-  sentimentSummary?: string;
-  sleepQuality: "poor" | "fair" | "good";
-  exerciseSuggested?: string;
-  createdAt: Timestamp;
-};
-```
-
----
-
-## Phase 7 — Smart Alerts Module
-
-> **Goal:** Trigger alerts for anomalies — in-app + push notifications.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 7.1 | Define alert rules (thresholds) | `constants/index.ts` |
-| 7.2 | Build alert evaluation engine | `lib/alerts.ts` |
-| 7.3 | Build in-app notification UI (toast + bell icon) | `components/ui/` |
-| 7.4 | Implement Push Notifications (Web Push API) | `lib/notifications.ts` |
-| 7.5 | Build alerts API route | `app/api/alerts/route.ts` |
-| 7.6 | Store alert history in MongoDB | `models/Alert.ts` |
-
-### Alert Triggers
-
-| Condition | Threshold | Severity |
-|-----------|-----------|----------|
-| Heart rate too high | > 120 bpm (resting) | 🔴 Critical |
-| Heart rate too low | < 50 bpm | 🔴 Critical |
-| Missed medicine | > 30 min past scheduled | 🟡 Warning |
-| Sleep deprivation | < 4 hours | 🔴 Critical |
-| Low steps (inactivity) | < 500 steps by 6 PM | 🟡 Warning |
-| High stress trend | 3+ consecutive high days | 🟡 Warning |
-
----
-
-## Phase 8 — Smart Reports
-
-> **Goal:** Generate weekly/monthly PDF health reports.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 8.1 | Define Report types | `types/report.ts` |
-| 8.2 | Build report data aggregation logic | `services/report.service.ts` |
-| 8.3 | Build PDF template with @react-pdf/renderer | `lib/pdf.ts` |
-| 8.4 | Build report API route | `app/api/reports/route.ts` |
-| 8.5 | Build ReportCard component | `components/reports/ReportCard.tsx` |
-| 8.6 | Build ReportViewer (in-app preview) | `components/reports/ReportViewer.tsx` |
-| 8.7 | Build Reports page | `app/(dashboard)/reports/page.tsx` |
-
-### Report Contents
-
-| Section | Data Source |
-|---------|-----------|
-| Vitals Summary | Google Fit data (avg/min/max) |
-| Steps & Activity | Daily step counts |
-| Sleep Analysis | Sleep duration breakdown |
-| Medicine Adherence | % taken vs scheduled |
-| Risk Score Trend | Daily risk scores plotted |
-| AI Recommendations | LLM-generated summary |
-
----
-
-## Phase 9 — Upload Past Medical Reports
-
-> **Goal:** Upload lab reports, OCR extract values, AI trend analysis.
-
-### Tasks
-
-| # | Task | File(s) |
-|---|------|---------|
-| 9.1 | Build file upload component | `components/ui/FileUpload.tsx` |
-| 9.2 | Upload file to cloud storage (Cloudinary / S3 / GridFS) | `services/health.service.ts` |
-| 9.3 | OCR extract lab values (Gemini Vision) | `app/api/ocr/route.ts` |
-| 9.4 | Store extracted values in MongoDB | `models/LabReport.ts` |
-| 9.5 | Build trend comparison (past vs present) | `components/reports/` |
-| 9.6 | AI analysis of trends | `app/api/chat/route.ts` |
-| 9.7 | Build Upload page | `app/(dashboard)/upload/page.tsx` |
-
-### Extracted Lab Values
-
-```ts
-type LabReport = {
-  id: string;
-  uploadDate: string;
-  reportDate: string;
-  fileUrl: string;
-  extractedValues: {
-    label: string;       // "Fasting Blood Sugar"
-    value: number;
-    unit: string;        // "mg/dL"
-    normalRange: string; // "70-100"
-    status: "normal" | "high" | "low";
-  }[];
-  aiSummary?: string;
-};
-```
-
----
-
-## Data Models (MongoDB Collections)
-
-```
-mongodb: cavista
-├── users                              ← User (5 named indexes, userId UUID)
-├── healthData                         ← DailyHealth (uid + date compound key)
-├── medicines                          ← Medicine + MedicineLog (uid indexed)
-├── mentalHealth                       ← MentalHealthEntry (uid + date)
-├── labReports                         ← LabReport (uid + uploadDate)
-├── chatSessions                       ← ChatSession (uid + sessionId)
-├── alerts                             ← Alert history (uid + createdAt)
-└── reports                            ← GeneratedReport (uid + type + date)
-```
-
----
-
-## API Routes Summary
-
-### Implemented ✅
-
-| Method | Route | Purpose |
-|--------|-------|--------|
-| `POST` | `/api/auth/signup` | Register new user, issue JWT cookie |
-| `POST` | `/api/auth/login` | Login, issue JWT cookie |
-| `GET` | `/api/auth/me` | Read JWT cookie → return current user |
-| `GET` | `/api/health/db` | MongoDB health-check + index sync |
-| `POST` | `/api/chat` | Proxy to `synthomind.cloud` chatbot webhook |
-| `POST` | `/api/ocr/extract` | OCR extraction + medical report parsing |
-| `POST` | `/api/twilio` | SMS alert dispatch |
-
-### Planned ⬜
-
-| Method | Route | Purpose |
-|--------|-------|--------|
-| `GET` | `/api/google-fit` | Fetch latest wearable data |
-| `POST` | `/api/google-fit/connect` | Google Fit OAuth initiation |
-| `GET` | `/api/reports/weekly` | Generate weekly health report |
-| `GET` | `/api/reports/monthly` | Generate monthly health report |
-| `POST` | `/api/alerts/evaluate` | Evaluate alert threshold conditions |
-
----
-
-## Environment Variables
-
-> All variables live in `.env.local` (single file — `.env.example` removed).
+## 8. Environment Variables
 
 ```env
-# App
+# ── App ──────────────────────────────────────────────────────
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
-# Chatbot Webhook
-CHATBOT_WEBHOOK_URL=https://synthomind.cloud/webhook/chatbot-basic
-
-# Database (MongoDB Atlas)
-MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/cavista?retryWrites=true&w=majority
+# ── Database (MongoDB Atlas) ─────────────────────────────────
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/cavista
 MONGODB_DB_NAME=cavista
 
-# Auth
+# ── Auth ─────────────────────────────────────────────────────
 JWT_SECRET=<strong-random-secret>
 
-# Planned — add when integrating
-# GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_SECRET=
-# TWILIO_ACCOUNT_SID=
-# TWILIO_AUTH_TOKEN=
-# TWILIO_FROM_NUMBER=
-# GOOGLE_GENERATIVE_AI_API_KEY=
+# ── n8n AI Webhooks ──────────────────────────────────────────
+CHATBOT_WEBHOOK_URL=https://synthomind.cloud/webhook/cavista-mental-chatbot
+DAILY_SUMMARY_WEBHOOK_URL=https://synthomind.cloud/webhook/mental-cavista-chatbot
+USER_DATA_STORE_WEBHOOK_URL=https://synthomind.cloud/webhook/user-data-store
+RECOMMENDATION_WEBHOOK_URL=https://synthomind.cloud/webhook-test/recom-system
+ROUTINE_WEBHOOK_URL=https://synthomind.cloud/webhook/recom-system
+REPORT_INFO_WEBHOOK_URL=https://synthomind.cloud/webhook/user-report-info
+REPORT_SUMMARY_WEBHOOK_URL=https://synthomind.cloud/webhook/mental-cavista-summary
+
+# ── Cloudinary ───────────────────────────────────────────────
+CLOUDINARY_CLOUD_NAME=<cloud-name>
+CLOUDINARY_API_KEY=<api-key>
+CLOUDINARY_API_SECRET=<api-secret>
+
+# ── Twilio ───────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID=<account-sid>
+TWILIO_AUTH_TOKEN=<auth-token>
+TWILIO_FROM_NUMBER=<phone-number>
 ```
 
 ---
 
-## Implementation Checklist
+## 9. Redundant Code — Cleanup Checklist
 
-> Legend: ✅ Done · 🔄 Partial · ⬜ Not started
+The following files/directories are **unused, orphaned, or duplicated** and should be removed:
 
-### Phase 0 — Setup & Auth ✅
-- ✅ Project scaffold (Next.js 16 + Tailwind 4 + TypeScript 5 + Turbopack)
-- ✅ MongoDB Atlas + Mongoose — `lib/mongodb.ts`, `models/User.ts` (5 named indexes)
-- ✅ Password hashing — `lib/auth.ts` (bcryptjs, 12 rounds)
-- ✅ JWT auth — `lib/auth.ts` (sign + verify, 7-day expiry, numeric `expiresIn`)
-- ✅ `app/api/auth/signup/route.ts` — create user, issue httpOnly JWT cookie
-- ✅ `app/api/auth/login/route.ts` — verify credentials, set cookie
-- ✅ `app/api/auth/me/route.ts` — read JWT cookie, return `userId/email/role`
-- ✅ `app/api/health/db/route.ts` — DB connection health-check + index sync
-- ✅ Login page — `app/(auth)/login/page.tsx` (client form, redirect on success)
-- ✅ Signup page — `app/(auth)/signup/page.tsx` (client form, redirect on success)
-- ✅ Auth layout — `app/(auth)/layout.tsx` (split-screen, VitalAI branding panel)
-- ✅ Dashboard layout — `app/(dashboard)/layout.tsx` (Header + MobileNav shell)
-- ✅ `components/layout/Header.tsx`, `Footer.tsx`, `MobileNav.tsx`
-- ⬜ Route guard / middleware (`middleware.ts`)
-- ⬜ `hooks/useAuth.ts` — client-side auth state hook
-- ⬜ Zustand auth store
+### 🔴 High Priority — Dead Code
 
-### Phase 1 — Profile ⬜
-- ⬜ `UserProfile` type in `types/index.ts`
-- ⬜ `ProfileForm` component
-- ⬜ `EmergencyContacts` component
-- ⬜ Profile page — `app/(dashboard)/profile/page.tsx`
-- ⬜ Auto-populate profile on first signup
+| # | Item | Path | Reason |
+|---|------|------|--------|
+| 1 | **Orphaned chat page** | `app/(dashboard)/chat/page.tsx` | No navigation links to `/chat`. Chat is embedded in mental-health page (`ChatAssistant`) and dashboard (`ChatDashboardModal`). Inaccessible to users. |
+| 2 | **Duplicate OCR endpoint** | `app/api/ocr/extract/route.ts` | Duplicate of `/api/medicine/extract-tesseract`. Only used by the test page. No production code calls it. |
+| 3 | **OCR test page** | `app/test/ocr/page.tsx` | Dev-only test harness. Should not ship to production. |
+| 4 | **Twilio test page** | `app/test/twilio/page.tsx` | Dev-only test harness. Should not ship to production. |
+| 5 | **SplineScene component** | `components/chat/SplineScene.tsx` | Never imported or rendered by any page or component. Completely dead code. |
+| 6 | **Footer component** | `components/layout/Footer.tsx` | Never imported anywhere. The landing page has its own inline footer. |
+| 7 | **Empty Zustand store** | `stores/index.ts` | Placeholder with only `export {}`. No actual stores. Not imported anywhere. |
+| 8 | **Unused API client** | `services/api.ts` | Base fetch wrapper — never imported by any component. All code uses raw `fetch()`. |
 
-### Phase 2 — Wearable Integration (Google Fit) ⬜
-- ⬜ Enable Google Fitness API in GCP
-- ⬜ OAuth flow for Google Fit
-- ⬜ `lib/google-fit.ts` — API client
-- ⬜ Fetch heart rate, steps, calories, sleep
-- ⬜ Store fetched data in MongoDB
-- ⬜ "Connect Google Fit" button in Profile
+### 🟡 Medium Priority — Unnecessary Root Files
 
-### Phase 3 — Dashboard ✅
-- ✅ `HeartRateCard.tsx`
-- ✅ `StepsCard.tsx`
-- ✅ `SleepCard.tsx`
-- ✅ `BloodPressureCard.tsx`
-- ✅ `RiskScoreBadge.tsx`
-- ✅ `WeeklyTrendChart.tsx`
-- ✅ `LiveMonitoring.tsx` (real-time vitals panel)
-- ✅ `HeroSection.tsx`, `MissionSection.tsx`, `SpecialistGrid.tsx`
-- ✅ `ProfileSnippet.tsx`, `RemindersWidget.tsx`, `DailyInsight.tsx` (sidebar widgets)
-- ✅ Dashboard page assembled — `app/(dashboard)/dashboard/page.tsx`
-- ⬜ CalorieCard (separate component)
-- ⬜ Auto-refresh polling (every 5 min)
+| # | Item | Path | Reason |
+|---|------|------|--------|
+| 9 | **Tesseract data file** | `eng.traineddata` | ~100MB file. Tesseract.js downloads its own trained data from CDN at runtime. No code references a custom `langPath`. Dead weight. |
+| 10 | **HTML mockup** | `stitch-dashboard.html` | Not referenced by any code. Old design prototype. |
+| 11 | **HTML mockup** | `stitch-screen1.html` | Same. |
+| 12 | **HTML mockup** | `stitch-screen2.html` | Same. |
+| 13 | **HTML mockup** | `stitch-screen3.html` | Same. |
+| 14 | **HTML mockup** | `stitch-screen4.html` | Same. |
 
-### Phase 4 — Medicine Reminders 🔄
-- ✅ Medicine page — `app/(dashboard)/medi-reminder/page.tsx`
-- ✅ `MedicineCard.tsx` — card UI per medicine
-- ✅ `AudioAlertToggle.tsx` — audio alert on/off
-- ✅ `DailyProgressWidget.tsx` — today's adherence widget
-- ✅ `LowStockAlert.tsx` — low stock warning component
-- ✅ `MainTabSwitcher.tsx` + `SubTabBar.tsx` — tab navigation
-- ✅ `MedicalTestCard.tsx` — test/lab result card
-- ✅ OCR API route — `app/api/ocr/extract/route.ts`
-- ✅ `lib/medicalReportParser.ts` — parse OCR output to structured data
-- ⬜ `PrescriptionUpload` component (drag-and-drop image upload)
-- ⬜ `AdherenceChart` (monthly % chart)
-- ⬜ Browser push notifications + TTS
+### 🟢 Low Priority — Constants & Package Cleanup
 
-### Phase 5 — AI Chatbot ✅
-- ✅ Chat API route — `app/api/chat/route.ts` (proxies to `https://synthomind.cloud/webhook/chatbot-basic`)
-- ✅ `ChatWindow.tsx` — message state, auto-scroll, typing indicator
-- ✅ `ChatMessage.tsx` — rich formatter (headings, bullets, numbered lists, bold)
-- ✅ `ChatInput.tsx` — textarea, Enter-to-send, Shift+Enter for newline
-- ✅ `ChatDashboardModal.tsx` — floating FAB + blurred transparent modal overlay
-- ✅ Chat page — `app/(dashboard)/chat/page.tsx`
-- ✅ `lib/uuid.ts` — client-safe UUID helper
-- ⬜ `useChat` hook
-- ⬜ Context injection (user vitals + medicine data passed to AI)
+| # | Item | Path | Reason |
+|---|------|------|--------|
+| 15 | **`ROUTES.CHAT` constant** | `constants/index.ts` | No navigation leads to `/chat`. Remove constant + its `ROUTE_ACCESS` entry. |
+| 16 | **`@splinetool/*` packages** | `package.json` | Only used by dead `SplineScene.tsx`. Run: `npm uninstall @splinetool/react-spline @splinetool/runtime` |
 
-### Phase 6 — Mental Health ⬜
-- ⬜ `MoodScore` component
-- ⬜ `StressIndicator`
-- ⬜ `BreathingExercise`
-- ⬜ Sentiment analysis integration
-- ⬜ Stress score calculation
-- ⬜ Mental Health page — `app/(dashboard)/mental-health/page.tsx`
+### 🔧 Architectural Improvement Suggestions
 
-### Phase 7 — Smart Alerts 🔄
-- ✅ `AudioAlertToggle.tsx` — audio alerts for medicine reminders
-- ✅ `app/api/twilio/` — SMS alert dispatch via Twilio
-- ✅ `LowStockAlert.tsx` — in-component low-stock flag
-- ⬜ `lib/alerts.ts` — alert threshold evaluation engine
-- ⬜ In-app toast notification UI
-- ⬜ Web Push API setup
-- ⬜ Alert history stored in MongoDB
-
-### Phase 8 — Smart Reports ⬜
-- ⬜ Report data aggregation service
-- ⬜ PDF template (`lib/pdf.ts`)
-- ⬜ Report API routes (`/api/reports/weekly`, `/api/reports/monthly`)
-- ⬜ `ReportCard` + `ReportViewer` components
-- ⬜ Reports page — `app/(dashboard)/reports/page.tsx`
-
-### Phase 9 — Medical Report Upload 🔄
-- ✅ `app/api/ocr/extract/route.ts` — OCR extraction endpoint
-- ✅ `lib/medicalReportParser.ts` — structured data parser from OCR output
-- ⬜ File upload UI component
-- ⬜ Cloud storage integration (Cloudinary / S3 / GridFS)
-- ⬜ Lab value trend comparison UI
-- ⬜ Upload page — `app/(dashboard)/upload/page.tsx`
+| # | Suggestion | Description |
+|---|-----------|-------------|
+| A | **Consolidate Mongoose models** | Models split between `models/` and `lib/models/`. Move all to single `models/` directory. |
+| B | **Extract large pages** | Several pages exceed 400+ LOC (reports: 740, doctor/shared: 566, profile: 488, assistant: 419, medi-reminder: 400, share: 397). Extract logic into hooks and smaller sub-components. |
+| C | **Use `ROUTES` constants consistently** | Some links use `ROUTES.ASSISTANT`, others hardcode `"/assistant"`. Standardize. |
 
 ---
 
-## Suggested Implementation Order (Hackathon Sprint)
-
-| Priority | Phase | Status | Remaining |
-|----------|-------|--------|-----------|
-| 🔴 P0 | Phase 0 — Auth | ✅ Done | Route guard / middleware |
-| 🔴 P0 | Phase 3 — Dashboard | ✅ Done | CalorieCard, auto-refresh |
-| 🔴 P0 | Phase 5 — AI Chatbot | ✅ Done | Context injection, useChat hook |
-| 🟠 P1 | Phase 4 — Medicine | 🔄 Partial | PrescriptionUpload, AdherenceChart, TTS |
-| 🟠 P1 | Phase 7 — Alerts | 🔄 Partial | Alert engine, push notifications |
-| 🟠 P1 | Phase 9 — Upload Reports | 🔄 Partial | Upload UI, storage integration |
-| 🟡 P2 | Phase 1 — Profile | ⬜ Next | Full profile page + emergency contacts |
-| 🟡 P2 | Phase 8 — Reports | ⬜ Next | PDF generation, report viewer |
-| 🟢 P3 | Phase 2 — Google Fit | ⬜ Later | OAuth flow, wearable data sync |
-| 🟢 P3 | Phase 6 — Mental Health | ⬜ Later | Mood tracker, stress score, breathing |
-
-> **Current sprint focus:** Close out Phase 4 (medicine TTS + AdherenceChart) and Phase 1 (profile page) — these two complete the core user experience before the demo.
-
----
-
-*Last updated: February 21, 2026*
+*Last updated: February 22, 2026*
