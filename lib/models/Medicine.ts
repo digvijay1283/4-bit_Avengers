@@ -13,7 +13,7 @@ export interface IMedicine extends Document {
   isActive: boolean;
   totalQuantity: number;
   remainingQuantity: number;
-  missedStreakCount: number;      // consecutive missed - alert after >= 2
+  missedStreakCount: number;      // consecutive missed - alert after >= 5
   createdAt: Date;
   updatedAt: Date;
 }

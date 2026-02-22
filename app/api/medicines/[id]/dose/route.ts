@@ -3,6 +3,73 @@ import { verifyAuthToken, getTokenFromRequest } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import Medicine from "@/lib/models/Medicine";
 import DoseLog from "@/lib/models/DoseLog";
+import { User } from "@/models/User";
+import twilio from "twilio";
+
+const MISSED_ALERT_THRESHOLD = 5;
+
+function normalizeE164(phone?: string | null): string | null {
+  if (!phone) return null;
+  const trimmed = phone.trim();
+  if (trimmed.startsWith("+")) return trimmed;
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  return `+${digits}`;
+}
+
+async function triggerGuardianCall(params: {
+  userId: string;
+  userName: string;
+  medicineName: string;
+  missedCount: number;
+}) {
+  const user = await User.findOne({ userId: params.userId }).lean();
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  const guardianName = user.emergencyContactName || "Guardian";
+  const guardianPhone = normalizeE164(user.emergencyContactPhone);
+  if (!guardianPhone) {
+    return {
+      success: false,
+      needsSetup: true,
+      error: "No emergency contact phone configured",
+    };
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const twilioPhone = normalizeE164(process.env.TWILIO_PHONE_NUMBER);
+  if (!accountSid || !authToken || !twilioPhone) {
+    return { success: false, error: "Twilio is not configured" };
+  }
+
+  const response = new twilio.twiml.VoiceResponse();
+  response.say(
+    { voice: "Polly.Joanna", language: "en-US" },
+    `Hello ${guardianName}. This is an automated health alert from Vital AI.`
+  );
+  response.pause({ length: 1 });
+  response.say(
+    { voice: "Polly.Joanna", language: "en-US" },
+    `Cause of this call: ${params.userName} has missed ${params.medicineName} ${params.missedCount} times in a row. Please check immediately.`
+  );
+
+  const client = twilio(accountSid, authToken);
+  const call = await client.calls.create({
+    twiml: response.toString(),
+    to: guardianPhone,
+    from: twilioPhone,
+  });
+
+  return {
+    success: true,
+    callSid: call.sid,
+    callStatus: call.status,
+    guardianPhone,
+  };
+}
 
 // ─── POST /api/medicines/[id]/dose — record a dose action (taken/snoozed/missed/skipped) ──
 export async function POST(
@@ -96,10 +163,64 @@ export async function POST(
     // Re-read medicine for updated missedStreakCount
     const updated = await Medicine.findById(id).lean();
 
+    let guardianAlert:
+      | {
+          triggered: boolean;
+          success?: boolean;
+          callSid?: string;
+          callStatus?: string;
+          error?: string;
+          needsSetup?: boolean;
+        }
+      | undefined;
+
+    if (
+      action === "missed" &&
+      (updated?.missedStreakCount ?? 0) === MISSED_ALERT_THRESHOLD
+    ) {
+      try {
+        const callResult = await triggerGuardianCall({
+          userId: payload.sub,
+          userName: payload.fullName ?? "The patient",
+          medicineName: medicine.name ?? "the medicine",
+          missedCount: MISSED_ALERT_THRESHOLD,
+        });
+
+        guardianAlert = {
+          triggered: true,
+          success: callResult.success,
+          callSid: "callSid" in callResult ? callResult.callSid : undefined,
+          callStatus: "callStatus" in callResult ? callResult.callStatus : undefined,
+          error: "error" in callResult ? callResult.error : undefined,
+          needsSetup: "needsSetup" in callResult ? callResult.needsSetup : undefined,
+        };
+
+        if (callResult.success) {
+          console.log(
+            `[GuardianAlert] Auto-call triggered from dose route. SID=${callResult.callSid}, medicine=${medicine.name}`
+          );
+        } else {
+          console.warn(
+            `[GuardianAlert] Auto-call not placed. reason=${callResult.error}`
+          );
+        }
+      } catch (callErr) {
+        const message =
+          callErr instanceof Error ? callErr.message : "Failed to place guardian call";
+        guardianAlert = {
+          triggered: true,
+          success: false,
+          error: message,
+        };
+        console.error("[GuardianAlert] Auto-call error:", callErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       doseLog,
       missedStreakCount: updated?.missedStreakCount ?? 0,
+      guardianAlert,
     });
   } catch (err) {
     console.error("POST /api/medicines/[id]/dose error:", err);

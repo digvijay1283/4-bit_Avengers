@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "medicineName is required",
-      });
+      }, { status: 400 });
     }
 
     const user = await User.findOne({ userId: payload.sub }).lean();
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "User not found",
-      });
+      }, { status: 404 });
     }
 
     const guardianPhone = user.emergencyContactPhone;
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         error:
           "No emergency contact phone number configured. Please update profile.",
         needsSetup: true,
-      });
+      }, { status: 400 });
     }
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: false,
         error: "Voice call service is not configured",
-      });
+      }, { status: 500 });
     }
 
     const client = twilio(accountSid, authToken);
@@ -112,6 +112,6 @@ export async function POST(req: NextRequest) {
       success: false,
       error: err.message || "Failed to initiate guardian alert call",
       code: err.code,
-    });
+    }, { status: err.status || 500 });
   }
 }
