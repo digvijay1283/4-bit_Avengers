@@ -41,11 +41,12 @@ interface ChatInputProps {
   onSend: (text: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  onEnterVoiceMode?: () => void;
 }
 
 type MicState = "idle" | "listening" | "unsupported";
 
-export default function ChatInput({ onSend, disabled, placeholder }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled, placeholder, onEnterVoiceMode }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [micState, setMicState] = useState<MicState>("idle");
   const [interimText, setInterimText] = useState("");

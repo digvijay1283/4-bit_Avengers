@@ -26,7 +26,7 @@ export async function GET() {
 
     const reports = await Report.find({ userId: payload.sub })
       .sort({ createdAt: -1 })
-      .select("reportId fileName fileUrl rawText extractedData status createdAt")
+      .select("reportId fileName fileUrl rawText extractedData summary status createdAt")
       .lean();
 
     return NextResponse.json({ success: true, reports });

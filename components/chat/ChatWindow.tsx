@@ -5,7 +5,7 @@ import ChatMessage, { type Message } from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import VoiceModeOverlay from "./VoiceModeOverlay";
 import { randomUUID } from "@/lib/uuid";
-import { Leaf, Brain } from "lucide-react";
+import { Leaf, Brain, Volume2, VolumeX } from "lucide-react";
 
 interface ChatWindowProps {
   userId: string;
@@ -15,17 +15,6 @@ interface ChatWindowProps {
   dailySummary?: string | null;
   isSummaryLoading?: boolean;
 }
-
-// SSE event shapes pushed by /api/chat/stream
-interface SSEConnectedEvent {
-  type: "connected";
-  sessionId: string;
-}
-interface SSEProactiveEvent {
-  type: "proactive";
-  message: { id: string; category: string; content: string };
-}
-type SSEEvent = SSEConnectedEvent | SSEProactiveEvent;
 
 const PRE_RESPONSE_STATES = [
   "Analyzing…",
@@ -46,13 +35,22 @@ export default function ChatWindow({
 
   const [messages, setMessages] = useState<Message[]>(() => initialMessages ?? []);
   const [isLoading, setIsLoading] = useState(false);
-  const [isProactiveTyping, setIsProactiveTyping] = useState(false);
   const [preResponseIndex, setPreResponseIndex] = useState(0);
   const [chatId] = useState(() => randomUUID());
-  const [sessionId] = useState(() => randomUUID());
+  const [autoAudio, setAutoAudio] = useState(false);
+  const [lastAutoPlayId, setLastAutoPlayId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const esRef = useRef<EventSource | null>(null);
   const onMessagesChangeRef = useRef(onMessagesChange);
+
+  // Read the stored daily summary from sessionStorage to send with each message
+  function getStoredSummary(): string {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      return sessionStorage.getItem(`user_summary:${userId}:${today}`) ?? "";
+    } catch {
+      return "";
+    }
+  }
 
   // true once the user has sent at least one message → switch to chat mode
   const hasUserMessages = messages.some((m) => m.role === "user");
@@ -61,7 +59,6 @@ export default function ChatWindow({
     if (!initialMessages) return;
     setMessages(initialMessages);
     setIsLoading(false);
-    setIsProactiveTyping(false);
   }, [initialMessages]);
 
   useEffect(() => {
@@ -86,59 +83,30 @@ export default function ChatWindow({
   // Auto-scroll on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading, isProactiveTyping]);
-
-  // Open SSE stream
-  useEffect(() => {
-    const url = `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}`;
-    const es = new EventSource(url);
-    esRef.current = es;
-
-    es.onmessage = (event: MessageEvent<string>) => {
-      let parsed: SSEEvent;
-      try {
-        parsed = JSON.parse(event.data) as SSEEvent;
-      } catch {
-        return;
-      }
-      if (parsed.type === "connected") return;
-      if (parsed.type === "proactive") {
-        setIsProactiveTyping(true);
-        setTimeout(() => {
-          setIsProactiveTyping(false);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `proactive-${parsed.message.id}-${Date.now()}`,
-              role: "assistant",
-              content: parsed.message.content,
-            },
-          ]);
-        }, 1200);
-      }
-    };
-    es.onerror = () => es.close();
-    return () => { es.close(); esRef.current = null; };
-  }, [sessionId]);
+  }, [messages, isLoading]);
 
   async function handleSend(text: string) {
     setMessages((prev) => [...prev, { id: randomUUID(), role: "user", content: text }]);
     setIsLoading(true);
     try {
+      const summary = getStoredSummary();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chatId, sessionId, userId, userChat: text }),
+        body: JSON.stringify({ chatId, userId, userChat: text, summary }),
       });
-      const payload = (await res.json()) as { ok: boolean; output?: string; message?: string };
+      const payload = (await res.json()) as { ok: boolean; output?: string; audio?: string; message?: string };
+      const newId = randomUUID();
       setMessages((prev) => [
         ...prev,
         {
-          id: randomUUID(),
+          id: newId,
           role: "assistant",
           content: payload.ok && payload.output ? payload.output : (payload.message ?? "Sorry, something went wrong."),
+          audio: payload.audio ?? "",
         },
       ]);
+      if (autoAudio) setLastAutoPlayId(newId);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -171,10 +139,41 @@ export default function ChatWindow({
               <Leaf className="h-3.5 w-3.5 text-primary" />
             </div>
             <span className="text-sm font-semibold text-slate-dark">VitalAI</span>
-            <span className="ml-auto flex items-center gap-1.5 text-xs text-[#22C55E] font-medium">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-              Online
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              {/* Auto-audio toggle */}
+              <button
+                onClick={() => {
+                  const next = !autoAudio;
+                  setAutoAudio(next);
+                  if (next) {
+                    // Unlock speechSynthesis while we are still inside the user-gesture handler,
+                    // so later async auto-play calls are not blocked by the browser.
+                    try {
+                      const unlock = new SpeechSynthesisUtterance("");
+                      window.speechSynthesis.speak(unlock);
+                      window.speechSynthesis.cancel();
+                    } catch { /* ignore */ }
+                  }
+                }}
+                title={autoAudio ? "Disable auto-audio" : "Enable auto-audio"}
+                className={[
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  autoAudio
+                    ? "border-[#106534] bg-[#D1FAE5] text-[#106534]"
+                    : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#106534] hover:text-[#106534]",
+                ].join(" ")}
+              >
+                {autoAudio ? (
+                  <><Volume2 className="h-3.5 w-3.5" /> Auto-audio: On</>
+                ) : (
+                  <><VolumeX className="h-3.5 w-3.5" /> Auto-audio: Off</>
+                )}
+              </button>
+              <span className="flex items-center gap-1.5 text-xs text-[#22C55E] font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                Online
+              </span>
+            </div>
           </div>
         )}
 
@@ -249,7 +248,7 @@ export default function ChatWindow({
             ) : (
               <div className="flex flex-col gap-4">
                 {messages.map((msg) => (
-                  <ChatMessage key={msg.id} message={msg} />
+                  <ChatMessage key={msg.id} message={msg} autoPlay={msg.id === lastAutoPlayId} />
                 ))}
                 {isLoading && (
                   <div className="flex items-center gap-2 text-sm text-[#64748B]">
@@ -257,14 +256,6 @@ export default function ChatWindow({
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary delay-150" />
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary delay-300" />
                     <span className="ml-1">{PRE_RESPONSE_STATES[preResponseIndex]}</span>
-                  </div>
-                )}
-                {isProactiveTyping && !isLoading && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-[#4ade80]" />
-                    <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-[#4ade80] delay-100" />
-                    <span className="inline-block h-2 w-2 animate-bounce rounded-full bg-[#4ade80] delay-200" />
-                    <span className="ml-1 text-xs text-[#94A3B8]">VitalAI is typing…</span>
                   </div>
                 )}
                 <div ref={bottomRef} />

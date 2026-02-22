@@ -1,11 +1,120 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Base64 audio string or URL returned by the chatbot API */
+  audio?: string;
 }
 
 interface ChatMessageProps {
   message: Message;
+  autoPlay?: boolean;
+}
+
+
+/** Strip markdown syntax so TTS reads clean prose */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")   // bold
+    .replace(/\*(.+?)\*/g, "$1")        // italic
+    .replace(/^#{1,6}\s+/gm, "")        // headings
+    .replace(/^[-•]\s+/gm, "")          // bullet points
+    .replace(/^\d+[.)]\s+/gm, "")       // numbered list
+    .trim();
+}
+
+function SpeakButton({ text, audio, autoPlay }: { text: string; audio?: string; autoPlay?: boolean }) {
+  const [speaking, setSpeaking] = useState(false);
+  const uttRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const didAutoPlay = useRef(false);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (uttRef.current) { window.speechSynthesis.cancel(); uttRef.current = null; }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    };
+  }, []);
+
+  function stop() {
+    if (uttRef.current) { window.speechSynthesis.cancel(); uttRef.current = null; }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setSpeaking(false);
+  }
+
+  function startTTS() {
+    const utt = new SpeechSynthesisUtterance(stripMarkdown(text));
+    utt.rate = 1;
+    utt.pitch = 1;
+    utt.onend = () => { setSpeaking(false); uttRef.current = null; };
+    utt.onerror = () => { setSpeaking(false); uttRef.current = null; };
+    uttRef.current = utt;
+    window.speechSynthesis.speak(utt);
+    setSpeaking(true);
+  }
+
+  function startPlaying() {
+    if (audio && audio.trim() !== "") {
+      const src = audio.startsWith("data:") || audio.startsWith("http")
+        ? audio
+        : `data:audio/mp3;base64,${audio}`;
+      const el = new Audio(src);
+      audioRef.current = el;
+      el.onended = () => { audioRef.current = null; setSpeaking(false); };
+      el.onerror = () => { audioRef.current = null; startTTS(); };
+      el.play().catch(() => { audioRef.current = null; startTTS(); });
+      setSpeaking(true);
+    } else {
+      startTTS();
+    }
+  }
+
+  function toggle() {
+    if (speaking) { stop(); return; }
+    startPlaying();
+  }
+
+  // Auto-play: fires when autoPlay flips to true.
+  // Calls startPlaying() directly — no stale closure through toggle().
+  useEffect(() => {
+    if (!autoPlay || didAutoPlay.current) return;
+    didAutoPlay.current = true;
+    // 150 ms lets the bubble render before audio begins
+    const t = setTimeout(() => startPlaying(), 150);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay]);
+
+  return (
+    <button
+      onClick={toggle}
+      title={speaking ? "Stop speaking" : "Read aloud"}
+      className={[
+        "mt-2 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+        speaking
+          ? "border-[#106534] bg-[#D1FAE5] text-[#106534]"
+          : "border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#106534] hover:text-[#106534]",
+      ].join(" ")}
+    >
+      {speaking ? (
+        <>
+          <VolumeX className="h-3.5 w-3.5" />
+          Stop
+        </>
+      ) : (
+        <>
+          <Volume2 className="h-3.5 w-3.5" />
+          Listen
+        </>
+      )}
+    </button>
+  );
 }
 
 type Block =
@@ -92,12 +201,12 @@ function parseContent(content: string): Block[] {
   return blocks;
 }
 
-export default function ChatMessage({ message }: ChatMessageProps) {
+export default function ChatMessage({ message, autoPlay }: ChatMessageProps) {
   const isUser = message.role === "user";
   const blocks = parseContent(message.content);
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
       <div
         className={[
           "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
@@ -106,6 +215,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             : "rounded-bl-md border border-[#E2E8F0] bg-[#F1F5F9] text-[#1E293B]",
         ].join(" ")}
       >
+
         {blocks.map((block, index) => {
           if (block.type === "heading") {
             return (
@@ -142,6 +252,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           );
         })}
       </div>
+      {!isUser && <SpeakButton text={message.content} audio={message.audio} autoPlay={autoPlay} />}
     </div>
   );
 }

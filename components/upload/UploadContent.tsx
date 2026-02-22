@@ -21,6 +21,9 @@ export default function UploadContent() {
   const [state, setState] = useState<UploadState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [ocrResult, setOcrResult] = useState("");
+  const [summaryStatus, setSummaryStatus] = useState<
+    "idle" | "loading" | "done" | "error"
+  >("idle");
 
   const acceptedTypes = [
     "image/png",
@@ -58,27 +61,65 @@ export default function UploadContent() {
 
   async function handleUpload() {
     if (!file) return;
+    console.log("[Upload] handleUpload called, file:", file.name, file.type, file.size);
     setState("uploading");
     setErrorMsg("");
+    setSummaryStatus("idle");
 
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/ocr", {
+      // Step 1 — Upload to Cloudinary + MongoDB + OCR (all in one)
+      console.log("[Upload] Step 1: calling /api/reports/upload...");
+      const res = await fetch("/api/reports/upload", {
         method: "POST",
         body: formData,
       });
 
+      console.log("[Upload] Step 1 response status:", res.status);
       setState("processing");
       const data = await res.json();
+      console.log("[Upload] Step 1 response data:", JSON.stringify(data).slice(0, 500));
 
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         throw new Error(data.error ?? "Upload failed");
       }
 
-      setOcrResult(data.text ?? "No text extracted.");
+      const rawText = data.report?.rawText ?? "";
+      setOcrResult(rawText || "No text extracted.");
       setState("done");
+
+      console.log("[Upload] Step 1 done. rawText length:", rawText.length);
+
+      // Summary comes back from the same request (both webhooks fire server-side)
+      if (data.userId) {
+        // Key must match the format useDailySummary reads: user_summary:<userId>:<YYYY-MM-DD>
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        const storageKey = `user_summary:${data.userId}:${dateStr}`;
+
+        // Use server summary or build a local fallback from the extracted data
+        const summaryText =
+          data.summary ||
+          (data.report?.extractedData?.nlp?.summary
+            ? `${data.report.fileName}: ${data.report.extractedData.nlp.summary}`
+            : rawText
+            ? `${data.report?.fileName ?? "Report"}: ${rawText.replace(/\s+/g, " ").slice(0, 800)}`
+            : null);
+
+        if (summaryText) {
+          sessionStorage.setItem(storageKey, summaryText);
+          setSummaryStatus("done");
+          console.log("[Upload] Summary stored in sessionStorage:", storageKey);
+        } else {
+          console.log("[Upload] No summary content available to store");
+          setSummaryStatus("idle");
+        }
+      } else {
+        console.log("[Upload] No userId in response — cannot store summary");
+        setSummaryStatus("idle");
+      }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Upload failed");
       setState("error");
@@ -90,6 +131,7 @@ export default function UploadContent() {
     setState("idle");
     setOcrResult("");
     setErrorMsg("");
+    setSummaryStatus("idle");
   }
 
   const fileIcon = file?.type.startsWith("image/") ? ImageIcon : File;

@@ -48,12 +48,21 @@ export function useDailySummary(userId: string | null) {
 
     const key = todayKey(userId);
 
-    // Already fetched today — reuse cached value
+    // Already fetched today — reuse cached value (ignore stale sentinel values)
     const cached = sessionStorage.getItem(key);
-    if (cached) {
+    if (
+      cached &&
+      cached !== "NO_USER_DATA_FOUND" &&
+      cached.trim() !== ""
+    ) {
       setSummary(cached);
       pruneOldEntries(userId, key);
       return;
+    }
+
+    // Remove stale NO_USER_DATA_FOUND entry so it doesn't linger in storage
+    if (cached) {
+      sessionStorage.removeItem(key);
     }
 
     // First login of the day — call the webhook proxy
@@ -65,13 +74,19 @@ export function useDailySummary(userId: string | null) {
           summary?: string;
           message?: string;
         };
-        if (body.ok && body.summary) {
+        if (
+          body.ok &&
+          body.summary &&
+          body.summary.trim() !== "" &&
+          body.summary.trim() !== "NO_USER_DATA_FOUND"
+        ) {
           sessionStorage.setItem(key, body.summary);
           pruneOldEntries(userId, key);
           setSummary(body.summary);
-        } else {
+        } else if (!body.ok) {
           setError(body.message ?? "Failed to load daily summary");
         }
+        // If ok but no meaningful summary (noData), leave summary null — don't cache
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "Network error");

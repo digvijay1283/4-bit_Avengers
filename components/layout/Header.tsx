@@ -9,8 +9,9 @@ import { useSession } from "@/hooks/useSession";
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, logout } = useSession();
+  const { user, status, logout } = useSession();
   const role = user?.role ?? "user";
+  const sessionReady = status !== "loading";
 
   const navItems = useMemo(() => getNavItemsByRole(role), [role]);
   const homeRoute = useMemo(() => getHomeRouteForRole(role), [role]);
@@ -33,21 +34,22 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Desktop Nav */}
+        {/* Desktop Nav — only render once session role is resolved */}
         <nav className="hidden md:flex gap-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={
-                isActive(item.href)
-                  ? "text-primary font-bold text-sm"
-                  : "text-slate-600 hover:text-primary font-semibold text-sm transition-colors"
-              }
-            >
-              {item.label}
-            </Link>
-          ))}
+          {sessionReady &&
+            navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={
+                  isActive(item.href)
+                    ? "text-primary font-bold text-sm"
+                    : "text-slate-600 hover:text-primary font-semibold text-sm transition-colors"
+                }
+              >
+                {item.label}
+              </Link>
+            ))}
         </nav>
 
         {/* CTA */}
