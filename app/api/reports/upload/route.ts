@@ -16,8 +16,7 @@ export async function POST(request: Request) {
   console.log("[reports/upload] POST called");
   try {
     // ── Auth ────────────────────────────────────────────────────────────────
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth_token")?.value;
+    const token = await getTokenFromRequest();
     console.log("[reports/upload] auth token present:", !!token);
     if (!token) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
